@@ -4,4 +4,7 @@
     <Project Path="src/ElApp.Watch.Vision/ElApp.Watch.Vision.csproj" />
     <Project Path="src/ElApp.Watch.Wpf/ElApp.Watch.Wpf.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ElApp.Watch.Domain.Tests/ElApp.Watch.Domain.Tests.csproj" />
+  </Folder>
 </Solution>
