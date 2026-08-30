@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ElApp.Watch.Domain/ElApp.Watch.Domain.csproj" />
+    <Project Path="src/ElApp.Watch.Vision/ElApp.Watch.Vision.csproj" />
+    <Project Path="src/ElApp.Watch.Wpf/ElApp.Watch.Wpf.csproj" />
+  </Folder>
+</Solution>
