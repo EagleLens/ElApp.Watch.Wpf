@@ -1,0 +1,26 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+out/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Rider / JetBrains
+.idea/
+
+# VS Code
+.vscode/
+
+# Runtime capture output (ElApp.Watch.Wpf writes here on every run)
+Snapshots/
+
+# NuGet
+*.nupkg
+**/packages/*
+
+# OS cruft
+Thumbs.db
+.DS_Store
