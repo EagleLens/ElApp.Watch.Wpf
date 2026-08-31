@@ -17,6 +17,10 @@ out/
 # Runtime capture output (ElApp.Watch.Wpf writes here on every run)
 Snapshots/
 
+# Sample/test video assets - kept out of git to keep the repo lightweight;
+# place locally under Assets/ manually (see README.md)
+*.mp4
+
 # NuGet
 *.nupkg
 **/packages/*

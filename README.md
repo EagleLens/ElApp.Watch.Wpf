@@ -48,5 +48,12 @@ executable — this folder is git-ignored; it's runtime output, not source.
 
 `src/ElApp.Watch.Wpf/Assets/` contains the bundled ONNX models (vehicle
 detection, plate detection, plate OCR — each under its own upstream
-license, see `Assets/Models/LICENSE-*.txt` and `NOTICE.md`), sample CCTV
-test videos, and static placeholder pump images used for filler tiles.
+license, see `Assets/Models/LICENSE-*.txt` and `NOTICE.md`) and static
+placeholder pump images used for filler tiles.
+
+Sample CCTV test videos (`cctv_multi_vehicle_test*.mp4`, used for pumps
+2-4's sample feeds) are **not tracked in git** — one is ~780MB, well over
+GitHub's 100MB file size limit, and `*.mp4` is git-ignored to keep the
+repo lightweight. Place them locally under `Assets/` (from wherever the
+team shares large test fixtures) before running pumps 2-4's sample feeds;
+pump 1's live webcam and the app itself work without them.
