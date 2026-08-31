@@ -33,14 +33,23 @@ public partial class App : Application
 
         // Shared across every pump, lazily built on whichever pump's background thread needs it
         // first - see CameraSourceService/VehicleDetector for why exactly one instance is required.
-        builder.Services.AddSingleton(sp => new Lazy<VehicleDetector>(
-            () => new VehicleDetector(sp.GetRequiredService<IOptions<VisionOptions>>().Value.VehicleDetectorModelPath),
-            LazyThreadSafetyMode.ExecutionAndPublication));
+        // Model paths from appsettings.json are relative (e.g. "Assets/Models/...") and must be
+        // resolved against AppContext.BaseDirectory here, exactly as the original hardcoded
+        // Path.Combine(AppContext.BaseDirectory, "Assets", "Models", ...) calls did - a bare
+        // relative path handed to CvDnn/OnnxRuntime resolves against the process's current
+        // working directory, not the app's install/output directory.
+        builder.Services.AddSingleton(sp => new Lazy<VehicleDetector>(() =>
+        {
+            VisionOptions options = sp.GetRequiredService<IOptions<VisionOptions>>().Value;
+            return new VehicleDetector(Path.Combine(AppContext.BaseDirectory, options.VehicleDetectorModelPath));
+        }, LazyThreadSafetyMode.ExecutionAndPublication));
 
         builder.Services.AddSingleton(sp => new Lazy<PlateReader>(() =>
         {
             VisionOptions options = sp.GetRequiredService<IOptions<VisionOptions>>().Value;
-            return new PlateReader(options.PlateDetectorModelPath, options.PlateOcrModelPath);
+            return new PlateReader(
+                Path.Combine(AppContext.BaseDirectory, options.PlateDetectorModelPath),
+                Path.Combine(AppContext.BaseDirectory, options.PlateOcrModelPath));
         }, LazyThreadSafetyMode.ExecutionAndPublication));
 
         builder.Services.AddSingleton<IUiDispatcher>(_ => new WpfUiDispatcher(Dispatcher.CurrentDispatcher));
