@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Windows-only: exercises IForecourtCredentialStore against the real Windows Credential Manager
+         (see src/ElApp.Watch.Wpf/Services/WindowsCredentialManagerStore.cs) - not runnable on a
+         non-Windows CI agent, consistent with this app's existing WPF/DirectShow Windows-only
+         requirement (see repo README). -->
+    <ProjectReference Include="..\..\src\ElApp.Watch.Wpf\ElApp.Watch.Wpf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+</Project>

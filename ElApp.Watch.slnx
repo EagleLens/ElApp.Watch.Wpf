@@ -6,5 +6,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ElApp.Watch.Domain.Tests/ElApp.Watch.Domain.Tests.csproj" />
+    <Project Path="tests/ElApp.Watch.Wpf.Tests/ElApp.Watch.Wpf.Tests.csproj" />
   </Folder>
 </Solution>
