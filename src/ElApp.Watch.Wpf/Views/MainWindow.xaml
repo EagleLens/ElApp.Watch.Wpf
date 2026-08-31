@@ -4,60 +4,28 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ElApp.Watch.Wpf.Views"
+        xmlns:vm="clr-namespace:ElApp.Watch.Wpf.ViewModels"
+        xmlns:conv="clr-namespace:ElApp.Watch.Wpf.Converters"
         mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         Title="CCTV Monitor" Height="750" Width="1200" MinHeight="550" MinWidth="900"
         Background="#0F1115"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
 
-        <SolidColorBrush x:Key="PanelBrush" Color="#171A21"/>
-        <SolidColorBrush x:Key="TileBrush" Color="#1B1F29"/>
-        <SolidColorBrush x:Key="BorderBrush1" Color="#262B36"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#22D3EE"/>
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#E5E7EB"/>
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#8B93A7"/>
-        <SolidColorBrush x:Key="OnlineBrush" Color="#34D399"/>
-        <SolidColorBrush x:Key="OfflineBrush" Color="#F87171"/>
-        <SolidColorBrush x:Key="AmberBrush" Color="#FBBF24"/>
+        <conv:ShowLabelsToOpacityConverter x:Key="ShowLabelsToOpacity"/>
+        <conv:ShowLabelsToTextDecorationsConverter x:Key="ShowLabelsToTextDecorations"/>
 
-        <!-- Camera entry in the sidebar list -->
-        <Style x:Key="CameraListItem" TargetType="Border">
-            <Setter Property="Padding" Value="12,10"/>
-            <Setter Property="Margin" Value="8,2"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1F2430"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- Small icon-style button used in the top bar -->
-        <Style x:Key="IconButton" TargetType="Button">
-            <Setter Property="Width" Value="34"/>
-            <Setter Property="Height" Value="34"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="15"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" CornerRadius="6" Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#1F2430"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <!-- Sidebar camera-list entry -->
+        <DataTemplate x:Key="SidebarItemTemplate" DataType="{x:Type vm:PumpTileViewModel}">
+            <Border Style="{StaticResource CameraListItem}">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8" Height="8" Fill="{Binding SidebarDotBrush}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="{Binding DisplayName}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
 
     </Window.Resources>
 
@@ -81,17 +49,20 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Border Background="#16261F" CornerRadius="12" Padding="10,4" Margin="0,0,16,0">
                         <StackPanel Orientation="Horizontal">
-                            <Ellipse x:Name="OnlineCountDot" Width="8" Height="8" Fill="{StaticResource OnlineBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock x:Name="OnlineCountText" Text="Detecting cameras..." Foreground="{StaticResource OnlineBrush}" FontSize="12" FontWeight="Medium"/>
+                            <Ellipse x:Name="OnlineCountDot" Width="8" Height="8" Fill="{Binding OnlineCountBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock x:Name="OnlineCountText" Text="{Binding OnlineCountText}" Foreground="{StaticResource OnlineBrush}" FontSize="12" FontWeight="Medium"/>
                         </StackPanel>
                     </Border>
 
-                    <TextBlock x:Name="ClockText" Text="--:--:--"
+                    <TextBlock x:Name="ClockText" Text="{Binding ClockText}"
                                Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,16,0"/>
 
                     <Button x:Name="ToggleLabelsButton" Style="{StaticResource IconButton}"
-                            ToolTip="Show/hide status labels (icons stay visible)" Click="ToggleLabelsButton_Click">
-                        <TextBlock x:Name="ToggleLabelsButtonText" Text="Aa" FontSize="12" FontWeight="Bold"/>
+                            ToolTip="Show/hide status labels (icons stay visible)"
+                            Command="{Binding ToggleLabelsCommand}"
+                            Opacity="{Binding ShowStatusLabels, Converter={StaticResource ShowLabelsToOpacity}}">
+                        <TextBlock x:Name="ToggleLabelsButtonText" Text="Aa" FontSize="12" FontWeight="Bold"
+                                   TextDecorations="{Binding ShowStatusLabels, Converter={StaticResource ShowLabelsToTextDecorations}}"/>
                     </Button>
                     <Button Style="{StaticResource IconButton}" Content="&#9881;" ToolTip="Settings"/>
                 </StackPanel>
@@ -111,7 +82,9 @@
                     <TextBlock DockPanel.Dock="Top" Text="CAMERAS" Foreground="{StaticResource TextSecondaryBrush}"
                                FontSize="11" FontWeight="Bold" Margin="16,16,16,8"/>
 
-                    <StackPanel x:Name="CameraListPanel" DockPanel.Dock="Top"/>
+                    <ItemsControl x:Name="CameraListPanel" DockPanel.Dock="Top"
+                                  ItemsSource="{Binding Tiles}"
+                                  ItemTemplate="{StaticResource SidebarItemTemplate}"/>
 
                     <Border DockPanel.Dock="Bottom" Margin="12,0,12,16" Padding="12" CornerRadius="8" Background="#1B1F29">
                         <StackPanel>
@@ -129,7 +102,18 @@
 
             <!-- Camera Grid -->
             <Border Grid.Column="1" Background="#0F1115">
-                <UniformGrid x:Name="CameraGrid" Margin="16"/>
+                <ItemsControl x:Name="CameraGrid" Margin="16" ItemsSource="{Binding Tiles}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="{Binding GridRows}" Columns="{Binding GridColumns}"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:PumpTileViewModel}">
+                            <local:PumpTileView/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </Border>
         </Grid>
 
