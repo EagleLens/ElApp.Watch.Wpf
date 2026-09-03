@@ -1,6 +1,6 @@
 using ElApp.Watch.Wpf.ViewModels;
 
-namespace ElApp.Watch.Wpf.Services;
+namespace ElApp.Watch.Wpf.Services.Interface;
 
 /// <summary>
 /// Drives one pump tile's capture loop: opens a live camera or a looping video file, publishes

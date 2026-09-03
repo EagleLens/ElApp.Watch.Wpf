@@ -1,3 +1,4 @@
+using ElApp.Watch.Wpf.Services.Interface;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;

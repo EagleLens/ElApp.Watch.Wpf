@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using ElApp.Watch.Wpf.Services;
+using ElApp.Watch.Wpf.Services.Interface;
 using Microsoft.Extensions.Options;
 using Xunit;
 

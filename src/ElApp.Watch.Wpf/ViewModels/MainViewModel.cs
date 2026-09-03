@@ -6,7 +6,7 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ElApp.Watch.Vision;
-using ElApp.Watch.Wpf.Services;
+using ElApp.Watch.Wpf.Services.Interface;
 
 namespace ElApp.Watch.Wpf.ViewModels;
 

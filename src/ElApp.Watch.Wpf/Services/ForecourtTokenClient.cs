@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using ElApp.Watch.Wpf.Services.Interface;
 using Microsoft.Extensions.Options;
 
 namespace ElApp.Watch.Wpf.Services;

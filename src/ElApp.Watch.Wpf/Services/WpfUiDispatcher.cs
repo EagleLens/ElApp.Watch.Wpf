@@ -1,3 +1,4 @@
+using ElApp.Watch.Wpf.Services.Interface;
 using System.Windows.Threading;
 
 namespace ElApp.Watch.Wpf.Services;

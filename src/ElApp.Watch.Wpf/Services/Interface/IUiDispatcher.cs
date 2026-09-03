@@ -1,4 +1,4 @@
-namespace ElApp.Watch.Wpf.Services;
+namespace ElApp.Watch.Wpf.Services.Interface;
 
 /// <summary>
 /// Thin abstraction over <see cref="System.Windows.Threading.Dispatcher.BeginInvoke(System.Delegate)"/>

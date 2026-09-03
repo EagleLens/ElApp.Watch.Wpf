@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Media.Imaging;
 using ElApp.Watch.Vision;
+using ElApp.Watch.Wpf.Services.Interface;
 using ElApp.Watch.Wpf.ViewModels;
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;

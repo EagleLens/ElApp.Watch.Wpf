@@ -1,7 +1,7 @@
 using System.Windows.Media.Imaging;
 using OpenCvSharp;
 
-namespace ElApp.Watch.Wpf.Services;
+namespace ElApp.Watch.Wpf.Services.Interface;
 
 public readonly record struct SnapshotResult(BitmapSource Bitmap, bool Saved, string? PlateText);
 

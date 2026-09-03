@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows.Media.Imaging;
 using ElApp.Watch.Vision;
+using ElApp.Watch.Wpf.Services.Interface;
 using Microsoft.Extensions.Options;
 using Microsoft.ML.OnnxRuntime;
 using OpenCvSharp;
