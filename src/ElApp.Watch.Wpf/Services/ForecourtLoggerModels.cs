@@ -1,4 +1,47 @@
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+
 namespace ElApp.Watch.Wpf.Services;
+
+/// <summary>
+/// This station's local IPv4 address, for the log entries' <c>Host</c> field - identifies which physical
+/// station sent an entry on the local network, independent of <see cref="Environment.MachineName"/>.
+/// Resolved once per process (a station's network config doesn't change mid-run) via network interface
+/// enumeration rather than DNS - reliable even without a configured/working local DNS setup.
+/// </summary>
+public static class LocalNetworkInfo
+{
+    public static readonly string? LocalIpAddress = TryGetLocalIpAddress();
+
+    private static string? TryGetLocalIpAddress()
+    {
+        try
+        {
+            return NetworkInterface.GetAllNetworkInterfaces()
+                .Where(nic => nic.OperationalStatus == OperationalStatus.Up && nic.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                .SelectMany(nic => nic.GetIPProperties().UnicastAddresses)
+                .Select(addr => addr.Address)
+                .Where(ip => ip.AddressFamily == AddressFamily.InterNetwork && !IsLinkLocal(ip))
+                .FirstOrDefault()
+                ?.ToString();
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// True for a 169.254.0.0/16 (APIPA) self-assigned address - what Windows hands an adapter that's
+    /// "Up" but never actually got a real one (e.g. plugged in but no DHCP/link), not a usable LAN
+    /// address. Without this exclusion, a disconnected adapter enumerated before the real one would win.
+    /// </summary>
+    private static bool IsLinkLocal(System.Net.IPAddress address)
+    {
+        var bytes = address.GetAddressBytes();
+        return bytes.Length == 4 && bytes[0] == 169 && bytes[1] == 254;
+    }
+}
 
 /// <summary>
 /// Matches ElApp.Logger.Service's LogLevel enum (El.Logger.Api.Client.Models.Enums.LogLevel) - not
@@ -33,6 +76,7 @@ public sealed class ForecourtPublicLogModel
     public bool IsHandled { get; init; } = true;
     public string? Type { get; init; }
     public string? UserId { get; init; }
+    public string? Host { get; init; } = LocalNetworkInfo.LocalIpAddress;
 }
 
 /// <summary>
@@ -53,6 +97,6 @@ public sealed class ForecourtPrivateLogModel
     public string? Source { get; init; }
     public string? ErrorCode { get; init; }
     public string? InternalCode { get; init; }
-    public string? Host { get; init; } = Environment.MachineName;
+    public string? Host { get; init; } = LocalNetworkInfo.LocalIpAddress;
     public bool Handled { get; init; } = true;
 }

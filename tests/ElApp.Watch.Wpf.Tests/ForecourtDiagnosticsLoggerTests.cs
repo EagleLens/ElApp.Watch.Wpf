@@ -48,27 +48,31 @@ public class ForecourtDiagnosticsLoggerTests
     }
 
     [Fact]
-    public async Task LogAsync_public_entry_carries_the_configured_client_id_as_UserId()
+    public async Task LogAsync_public_entry_carries_the_extracted_elid_as_UserId()
     {
         // No bearer token on the public path, so UserId is the only way the server can tell which
-        // station sent this entry - populate it directly from whatever client_id is configured, even
-        // though this specific call couldn't authenticate with it (e.g. server currently rejecting it,
-        // network hiccup, etc.). Sent as-is - ElApp.Logger.Service's UserId column being a Guid? that
-        // silently drops non-guid values is a server-side concern, not this app's to work around.
+        // station sent this entry - populate it from the configured client_id even though this specific
+        // call couldn't authenticate with it (e.g. a wrong/expired secret - exactly when public-channel
+        // attribution matters most). ElApp.Logger.Service's UserId column is a Guid? and silently drops
+        // anything that isn't - the "el-" prefix must be stripped so the bare elid actually persists.
+        var elid = Guid.NewGuid();
         var handler = new StubHttpMessageHandler(HttpStatusCode.OK);
-        var sut = CreateSut(handler, new ThrowingApiClient(), new FakeTokenClient(token: null), credentialClientId: "534534543");
+        var sut = CreateSut(handler, new ThrowingApiClient(), new FakeTokenClient(token: null), credentialClientId: $"el-{elid}");
 
         await sut.LogAsync(ForecourtLogLevel.Error, "title", "message");
 
         using var document = JsonDocument.Parse(handler.Requests[0].Body!);
-        Assert.Equal("534534543", document.RootElement.GetProperty("userId").GetString());
+        Assert.Equal(elid.ToString(), document.RootElement.GetProperty("userId").GetString());
     }
 
-    [Fact]
-    public async Task LogAsync_public_entry_UserId_is_null_when_no_credential_is_stored()
+    [Theory]
+    [InlineData(null)] // no credential stored at all
+    [InlineData("534534543")] // not "el-"-prefixed at all - a placeholder that was never guid-shaped
+    [InlineData("el-not-a-guid")] // "el-"-prefixed but the remainder isn't a valid guid
+    public async Task LogAsync_public_entry_UserId_is_null_when_the_stored_client_id_has_no_extractable_elid(string? credentialClientId)
     {
         var handler = new StubHttpMessageHandler(HttpStatusCode.OK);
-        var sut = CreateSut(handler, new ThrowingApiClient(), new FakeTokenClient(token: null), credentialClientId: null);
+        var sut = CreateSut(handler, new ThrowingApiClient(), new FakeTokenClient(token: null), credentialClientId);
 
         await sut.LogAsync(ForecourtLogLevel.Error, "title", "message");
 
@@ -88,6 +92,34 @@ public class ForecourtDiagnosticsLoggerTests
 
         Assert.Empty(handler.Requests); // must not go through the anonymous client
         Assert.Equal("https://example.test/private-log", apiClient.LastRequestUri);
+    }
+
+    [Fact]
+    public async Task LogAsync_public_entry_carries_the_station_ip_as_Host()
+    {
+        // Identifies which physical station sent the entry on the local network - independent of
+        // ApplicationIdentifier/UserId, which identify the app/customer, not the machine.
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK);
+        var sut = CreateSut(handler, new ThrowingApiClient(), new FakeTokenClient(token: null));
+
+        await sut.LogAsync(ForecourtLogLevel.Error, "title", "message");
+
+        using var document = JsonDocument.Parse(handler.Requests[0].Body!);
+        var hostProperty = document.RootElement.GetProperty("host");
+        var actual = hostProperty.ValueKind == JsonValueKind.Null ? null : hostProperty.GetString();
+        Assert.Equal(LocalNetworkInfo.LocalIpAddress, actual);
+    }
+
+    [Fact]
+    public async Task LogAsync_private_entry_carries_the_station_ip_as_Host()
+    {
+        var apiClient = new RecordingApiClient();
+        var sut = CreateSut(new StubHttpMessageHandler(HttpStatusCode.OK), apiClient, new FakeTokenClient(token: "token-1"));
+
+        await sut.LogAsync(ForecourtLogLevel.Error, "title", "message");
+
+        var model = Assert.IsType<ForecourtPrivateLogModel>(apiClient.LastBody);
+        Assert.Equal(LocalNetworkInfo.LocalIpAddress, model.Host);
     }
 
     [Fact]
@@ -203,6 +235,7 @@ public class ForecourtDiagnosticsLoggerTests
     private sealed class RecordingApiClient : IForecourtApiClient
     {
         public string? LastRequestUri { get; private set; }
+        public object? LastBody { get; private set; }
 
         public Task<HttpResponseMessage> GetAsync(string requestUri, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
@@ -210,6 +243,7 @@ public class ForecourtDiagnosticsLoggerTests
         public Task<HttpResponseMessage> PostAsJsonAsync<TBody>(string requestUri, TBody body, CancellationToken cancellationToken = default)
         {
             LastRequestUri = requestUri;
+            LastBody = body;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(string.Empty, Encoding.UTF8) });
         }
     }

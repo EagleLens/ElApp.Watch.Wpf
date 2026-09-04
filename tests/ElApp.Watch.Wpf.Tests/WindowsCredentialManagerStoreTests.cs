@@ -1,4 +1,5 @@
 using ElApp.Watch.Wpf.Services;
+using ElApp.Watch.Wpf.Services.Interface;
 using Xunit;
 
 namespace ElApp.Watch.Wpf.Tests;

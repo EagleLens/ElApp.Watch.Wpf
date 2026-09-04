@@ -9,6 +9,7 @@ namespace ElApp.Watch.Wpf.Services;
 public sealed class ForecourtDiagnosticsLogger : IForecourtDiagnosticsLogger
 {
     private const string LogType = "ForecourtWatch";
+    private const string ForecourtClientIdPrefix = "el-";
 
     private readonly HttpClient _anonymousHttpClient;
     private readonly IForecourtApiClient _authenticatedApiClient;
@@ -71,26 +72,53 @@ public sealed class ForecourtDiagnosticsLogger : IForecourtDiagnosticsLogger
     {
         // There's no bearer token on this path (that's why we're using the public endpoint), so
         // UserId is the only way the server can attribute this entry to a station at all - populate it
-        // directly from whatever client_id is configured (appsettings' ForecourtAuth:SeedClientId while
-        // set, otherwise Windows Credential Manager - see ConfigOverridingCredentialStore). Note
-        // ElApp.Logger.Service's UserId column is a Guid? (LogService.LogMessage silently drops
-        // anything Guid.TryParse can't parse) - a non-guid client_id, or "el-{guid}"'s "el-" prefix,
-        // will therefore still come through as null in the log DB even though it was sent. That's a
-        // server-side (ElApp.Logger.Service) constraint, not something this app can work around.
+        // with the customer's elid, extracted from the forecourt client_id (whatever's configured:
+        // appsettings' ForecourtAuth:SeedClientId while set, otherwise Windows Credential Manager - see
+        // ConfigOverridingCredentialStore), regardless of whether that credential currently authenticates
+        // - a wrong/expired secret is exactly the case where the public channel is used and station
+        // attribution matters most. Extraction happens because ElApp.Logger.Service's UserId column is
+        // a Guid? and LogService.LogMessage silently drops anything Guid.TryParse can't parse: a real
+        // client_id is "el-{elid}", not a bare guid, so sending it unmodified would never persist even
+        // though it's genuinely GUID-shaped once the prefix is removed.
+        var userId = _credentialStore.TryGet()?.ClientId;
         var model = new ForecourtPublicLogModel
         {
             ApplicationIdentifier = _options.ApplicationIdentifier,
             LogLevel = level,
             Title = title,
             Message = message,
-            MoreInfo = moreInfo,
+            // Host (below) doesn't reach the log DB yet - ElApp.MainExternal.Service's public-channel
+            // proxy binds to a published NuGet package that hasn't picked up the new Host field. Until
+            // that's redeployed, put the IP in MoreInfo too, which is already known to reach the DB.
+            MoreInfo = $"[UserId: {userId}] [IP: {LocalNetworkInfo.LocalIpAddress}] " + moreInfo,
             Type = LogType,
-            UserId = _credentialStore.TryGet()?.ClientId,
+            UserId = TryExtractElid(userId),
+            Host = LocalNetworkInfo.LocalIpAddress,
         };
         return PostSafelyAsync(
             () => _anonymousHttpClient.PostAsJsonAsync(_options.PublicLogEndpoint, model, cancellationToken),
             "public",
             cancellationToken);
+    }
+
+    /// <summary>
+    /// Forecourt client_ids are "el-{elid}" (ElApp.AuthService.Web's IForecourtClientProvisioningService),
+    /// not a bare guid - but ElApp.Logger.Service's UserId column is a Guid? and LogService.LogMessage
+    /// silently drops anything Guid.TryParse can't parse (no error, just null). Sending the client_id
+    /// as-is would therefore never persist, even for a genuine one - strip the prefix first so the
+    /// actual elid (what UserId is meant to hold) reaches the database. A configured value that isn't
+    /// "el-{guid}"-shaped at all (e.g. a placeholder test value) correctly yields null here too - it was
+    /// never representable in that Guid? column regardless of this extraction.
+    /// </summary>
+    private static string? TryExtractElid(string? clientId)
+    {
+        if (clientId is null || !clientId.StartsWith(ForecourtClientIdPrefix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var candidate = clientId[ForecourtClientIdPrefix.Length..];
+        return Guid.TryParse(candidate, out var elid) ? elid.ToString() : null;
     }
 
     private Task<bool> PostToPrivateEndpointAsync(ForecourtLogLevel level, string title, string message, string? moreInfo, CancellationToken cancellationToken)
@@ -101,9 +129,10 @@ public sealed class ForecourtDiagnosticsLogger : IForecourtDiagnosticsLogger
             LogLevel = level,
             Title = title,
             Message = message,
-            MoreInfo = moreInfo,
+            MoreInfo = $"[IP: {LocalNetworkInfo.LocalIpAddress}] " + moreInfo,
             Type = LogType,
             Source = _options.ApplicationIdentifier,
+            Host = LocalNetworkInfo.LocalIpAddress,
         };
         return PostSafelyAsync(
             () => _authenticatedApiClient.PostAsJsonAsync(_options.PrivateLogEndpoint, model, cancellationToken),
