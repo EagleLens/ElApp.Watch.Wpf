@@ -112,6 +112,16 @@ public partial class App : Application
                 ServerCertificateCustomValidationCallback = (_, _, _, _) => true,
             });
 
+        // Serilog, matching the platform-wide pattern used by every other El* service (see e.g.
+        // ElApp.AuthService.Web's Mvc/Configurations/SerilogAndFcLogger.cs): replaces the logging
+        // backend outright, so any existing or future ILogger<T> call anywhere in this app's own code
+        // is automatically forwarded to IForecourtDiagnosticsLogger - no call site needs to know this
+        // pipeline exists. Filtered by the same "Logging:LogLevelsToPersist" appsettings key every other
+        // service uses, to avoid flooding Logger.Service with routine Debug/Information noise. Must run
+        // before Build() (Serilog convention) - the forwarding sink only resolves _host.Services lazily,
+        // once an actual log event needs forwarding, well after Build()/Start() complete.
+        ForecourtSerilogLogging.Configure(builder, () => _host?.Services);
+
         _host = builder.Build();
         _host.Start();
 
