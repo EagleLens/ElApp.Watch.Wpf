@@ -27,12 +27,11 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // TEMPORARY, testing-only: `ElApp.Watch.Wpf.exe --clear-forecourt-credential` clears the real
-        // Windows Credential Manager store. Note this has no effect on what the app actually reads
-        // while appsettings.json's ForecourtAuth:SeedClientId/SeedClientSecret are both set - see
+        // `ElApp.Watch.Wpf.exe --clear-forecourt-credential` clears this station's stored credential from
+        // Windows Credential Manager - useful when decommissioning or re-provisioning a station. Has no
+        // effect while appsettings.json's ForecourtAuth:ClientId/ClientSecret are both set - see
         // ConfigOverridingCredentialStore, which reads those directly and never consults the real store
-        // in that case. Exits immediately, no window shown. Remove once a real setup/provisioning flow
-        // exists.
+        // in that case. Exits immediately, no window shown.
         if (e.Args.Contains("--clear-forecourt-credential", StringComparer.OrdinalIgnoreCase))
         {
             new WindowsCredentialManagerStore().Delete();
@@ -84,10 +83,9 @@ public partial class App : Application
         // real deployment talks to properly-certified endpoints and must not carry this bypass.
         builder.Services.Configure<ForecourtAuthOptions>(builder.Configuration.GetSection(ForecourtAuthOptions.SectionName));
         // ConfigOverridingCredentialStore wraps the real Windows-Credential-Manager-backed store: while
-        // appsettings.json's ForecourtAuth:SeedClientId/SeedClientSecret are both set, every read
-        // returns them directly (Windows Credential Manager isn't consulted at all in that case) - see
-        // that type for why. Real deployments should take WindowsCredentialManagerStore directly once a
-        // real provisioning/setup flow exists and this override is removed.
+        // appsettings.json's ForecourtAuth:ClientId/ClientSecret are both set, every read returns them
+        // directly (Windows Credential Manager isn't consulted at all in that case) - see that type for
+        // why. Leave both blank to provision a station via Windows Credential Manager instead.
         builder.Services.AddSingleton<IForecourtCredentialStore>(sp => new ConfigOverridingCredentialStore(
             new WindowsCredentialManagerStore(),
             sp.GetRequiredService<IOptions<ForecourtAuthOptions>>()));
@@ -136,11 +134,9 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Permanent startup instrumentation: reports that this station started, via
-    /// <see cref="IForecourtDiagnosticsLogger"/> - which endpoint actually carries the entry (public if
-    /// the station cannot currently authenticate, private/attributed to the customer if it can) is
-    /// <see cref="ForecourtDiagnosticsLogger"/>'s own decision, not made here. Unlike the credential
-    /// seeding and smoke-test helpers below, this is real, ongoing application behavior, not a testing aid.
+    /// Reports that this station started, via <see cref="IForecourtDiagnosticsLogger"/> - which endpoint
+    /// actually carries the entry (public if the station cannot currently authenticate, private/attributed
+    /// to the customer if it can) is <see cref="ForecourtDiagnosticsLogger"/>'s own decision, not made here.
     /// </summary>
     private async Task LogApplicationStartedAsync()
     {
@@ -153,9 +149,10 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// TEMPORARY, testing-only (see ForecourtAuthOptions.StartupTestRequestUrl): proves the
-    /// client_credentials -> bearer token -> API call path works end to end by making one authenticated
-    /// GET and showing the result. Remove once a real verify-flow integration exists.
+    /// A manual, on-demand check (see <see cref="ForecourtAuthOptions.StartupTestRequestUrl"/>): proves
+    /// the client_credentials -> bearer token -> API call path works end to end by making one
+    /// authenticated GET and showing the result. No-op (and no popup) whenever that URL is left blank -
+    /// the normal state for a station that isn't actively being verified.
     /// </summary>
     private async Task RunForecourtStartupTestCallIfConfiguredAsync()
     {

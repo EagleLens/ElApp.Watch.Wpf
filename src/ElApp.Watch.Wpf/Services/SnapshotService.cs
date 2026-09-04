@@ -1,11 +1,12 @@
-using System.IO;
-using System.Windows.Media.Imaging;
 using ElApp.Watch.Vision;
 using ElApp.Watch.Wpf.Services.Interface;
 using Microsoft.Extensions.Options;
 using Microsoft.ML.OnnxRuntime;
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
+using Serilog;
+using System.IO;
+using System.Windows.Media.Imaging;
 
 namespace ElApp.Watch.Wpf.Services;
 
@@ -20,6 +21,12 @@ public sealed class SnapshotService(Lazy<PlateReader> plateReader, IOptions<Snap
     {
         using (frame)
         {
+            Log.Verbose("Verbose:Application Starting");
+            Log.Information("Information:Application Starting");
+            Log.Debug("Debug:Application Starting");
+            Log.Warning("Warning:Application Starting");
+            Log.Error("Error:Application Starting");
+            Log.Fatal("Fatal:Application Starting");
             string? plateText = null;
             try
             {

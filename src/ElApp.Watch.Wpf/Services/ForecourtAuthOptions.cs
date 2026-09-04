@@ -17,24 +17,23 @@ public sealed class ForecourtAuthOptions
     public TimeSpan RefreshMargin { get; init; } = TimeSpan.FromMinutes(2);
 
     /// <summary>
-    /// TEMPORARY, testing-only: when both this and <see cref="SeedClientSecret"/> are set, every
-    /// credential read returns them directly - see <see cref="ConfigOverridingCredentialStore"/> - and
-    /// Windows Credential Manager is not consulted at all. Leave both blank to use whatever is actually
-    /// stored in Windows Credential Manager (the real, production path). A real forecourt device must
-    /// never have its client_secret sit in a config file at all - that's exactly what Windows Credential
-    /// Manager exists to avoid (see <see cref="WindowsCredentialManagerStore"/>) - so this exists only
-    /// until a real provisioning/setup flow (CLI seeding, an installer step, etc.) replaces it.
+    /// This station's forecourt client_id, provisioned by an admin via
+    /// <c>ElApp.AuthService.Web</c>'s <c>AdminCustomerController</c> and configured here directly. When
+    /// both this and <see cref="ClientSecret"/> are set, every credential read returns them directly -
+    /// see <see cref="ConfigOverridingCredentialStore"/> - without consulting Windows Credential Manager.
+    /// Leave both blank to fall back to whatever is stored in Windows Credential Manager instead (see
+    /// <see cref="WindowsCredentialManagerStore"/>).
     /// </summary>
-    public string? SeedClientId { get; init; }
+    public string? ClientId { get; init; }
 
-    public string? SeedClientSecret { get; init; }
+    /// <summary>This station's forecourt client_secret, paired with <see cref="ClientId"/>.</summary>
+    public string? ClientSecret { get; init; }
 
     /// <summary>
-    /// TEMPORARY, testing-only: if set, App.xaml.cs makes one authenticated GET to this URL on startup via
-    /// <see cref="IForecourtApiClient"/> and shows the result, to prove the client_credentials -> bearer
-    /// token -> API call path works end to end. Not part of any real verify-flow integration (that has its
-    /// own endpoint contract, request/response shape, and error handling still to be designed) - remove
-    /// this smoke-test call once that exists.
+    /// If set, App.xaml.cs makes one authenticated GET to this URL on startup via
+    /// <see cref="IForecourtApiClient"/> and shows the result - a manual, on-demand check that the
+    /// client_credentials -> bearer token -> API call path works end to end. Leave blank to skip it (the
+    /// normal state for a station that isn't actively being verified).
     /// </summary>
     public string? StartupTestRequestUrl { get; init; }
 }

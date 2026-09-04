@@ -10,13 +10,14 @@ using Serilog.Sinks.SystemConsole.Themes;
 namespace ElApp.Watch.Wpf.Services;
 
 /// <summary>
-/// Mirrors the platform-wide Serilog + Fc.Common.Logger.FcCommonSink pattern (see e.g.
+/// Matches the platform-wide Serilog + Fc.Common.Logger.FcCommonSink pattern (see e.g.
 /// ElApp.AuthService.Web's Mvc/Configurations/SerilogAndFcLogger.cs, ElApp.MainExternal.Service's
-/// equivalent) - every service already sets Serilog as the app's logging backend, filters events through
-/// an appsettings "Logging:LogLevelsToPersist" allowlist, and forwards the survivors to Logger.Service via
-/// a custom ILogEventSink. Because Serilog replaces the ILoggerFactory outright, any existing or future
-/// ILogger&lt;T&gt; call anywhere in the app's own code is automatically covered - no call site needs to
-/// know this pipeline exists.
+/// equivalent) as closely as this app's shape allows: Serilog is the only logging API used anywhere -
+/// plain static Serilog.Log.Debug/Information/Warning/... calls, not a Microsoft.Extensions.Logging
+/// ILogger&lt;T&gt; abstraction sitting on top of it - and every event is filtered through the same
+/// appsettings "Logging:LogLevelsToPersist" allowlist the reference implementation uses, with no
+/// source/category filtering beyond that (exactly matching the reference - see below for the one
+/// necessary exception).
 ///
 /// This differs from the platform pattern in one deliberate way: Fc.Common.Logger.FcLogger.LogSeriLog
 /// always POSTs using a dedicated service-identity client_credentials token (every MVC/API service has
@@ -26,6 +27,14 @@ namespace ElApp.Watch.Wpf.Services;
 /// callback routes through IForecourtDiagnosticsLogger.LogAsync, which already makes that public/private
 /// decision - keeping this Serilog integration and the rest of the diagnostics pipeline as one system
 /// instead of two independent ones.
+///
+/// The reference implementation's own recursion safety (FcLogger.LogSeriLog reports its own failures via
+/// plain Console.WriteLine, never another Serilog call) is mirrored the same way here -
+/// ForecourtDiagnosticsLogger does the same for exactly the same reason: a log-delivery HTTP call that
+/// itself produced a forwarded log would trigger another delivery attempt, recursing without end. See
+/// ExcludedCategories below for the one further, purely-defensive backstop this app needs that the
+/// reference doesn't: HttpClientFactory's own built-in request/response logging for the three HttpClients
+/// IForecourtDiagnosticsLogger.LogAsync's call chain uses.
 /// </summary>
 public static class ForecourtSerilogLogging
 {
@@ -55,21 +64,23 @@ public static class ForecourtSerilogLogging
     }
 
     /// <summary>
-    /// Only "ElApp." SourceContexts are ever forwarded - never third-party/framework noise - and the
-    /// diagnostics-delivery chain's own categories are explicitly excluded even though they're "ElApp."
-    /// too: without that, a log-delivery HTTP call could itself produce a log, forwarding which triggers
-    /// another delivery attempt, recursing without end. ForecourtTokenClient/ForecourtApiClient don't log
-    /// anything today, but both are in IForecourtDiagnosticsLogger.LogAsync's own call chain, so excluding
-    /// them is cheap insurance against reintroducing that recursion the moment either one gains a log call.
+    /// Every event is forwarded regardless of source, matching the platform reference's own
+    /// level-only filtering - except HttpClientFactory's own built-in request/response logging for the
+    /// three HttpClients IForecourtDiagnosticsLogger.LogAsync's call chain uses
+    /// (IForecourtDiagnosticsLogger/IForecourtTokenClient/IForecourtApiClient): without this one
+    /// exclusion, the HTTP call that delivers a forwarded log would itself produce a log under one of
+    /// these categories, forwarding which triggers another delivery attempt, recursing without end. A
+    /// null <paramref name="sourceContext"/> (e.g. a plain static Serilog.Log.Warning(...) call with no
+    /// attached context) is always forwarded - there's nothing to exclude it by.
     /// </summary>
-    public static bool ShouldForward(string sourceContext) =>
-        sourceContext.StartsWith("ElApp.", StringComparison.Ordinal) && !ExcludedCategories.Contains(sourceContext);
+    public static bool ShouldForward(string? sourceContext) =>
+        sourceContext is null || !ExcludedCategoryPrefixes.Any(excluded => sourceContext.StartsWith(excluded, StringComparison.Ordinal));
 
-    private static readonly string[] ExcludedCategories =
+    private static readonly string[] ExcludedCategoryPrefixes =
     [
-        typeof(ForecourtDiagnosticsLogger).FullName!,
-        typeof(ForecourtTokenClient).FullName!,
-        typeof(ForecourtApiClient).FullName!,
+        $"System.Net.Http.HttpClient.{nameof(IForecourtDiagnosticsLogger)}",
+        $"System.Net.Http.HttpClient.{nameof(IForecourtTokenClient)}",
+        $"System.Net.Http.HttpClient.{nameof(IForecourtApiClient)}",
     ];
 
     public static async Task ForwardAsync(LogEvent logEvent, IReadOnlyCollection<LogEventLevel> logLevelsToPersist, Func<IServiceProvider?> serviceProvider)
@@ -81,7 +92,8 @@ public static class ForecourtSerilogLogging
                 return;
             }
 
-            if (!TryGetSourceContext(logEvent, out var sourceContext) || !ShouldForward(sourceContext))
+            var sourceContext = TryGetSourceContext(logEvent);
+            if (!ShouldForward(sourceContext))
             {
                 return;
             }
@@ -94,7 +106,7 @@ public static class ForecourtSerilogLogging
 
             await diagnosticsLogger.LogAsync(
                 ToForecourtLogLevel(logEvent.Level),
-                sourceContext,
+                sourceContext ?? "Serilog",
                 logEvent.RenderMessage(),
                 logEvent.Exception?.ToString());
         }
@@ -104,17 +116,10 @@ public static class ForecourtSerilogLogging
         }
     }
 
-    private static bool TryGetSourceContext(LogEvent logEvent, out string sourceContext)
-    {
-        if (logEvent.Properties.TryGetValue("SourceContext", out var value) && value is ScalarValue { Value: string context })
-        {
-            sourceContext = context;
-            return true;
-        }
-
-        sourceContext = string.Empty;
-        return false;
-    }
+    private static string? TryGetSourceContext(LogEvent logEvent) =>
+        logEvent.Properties.TryGetValue("SourceContext", out var value) && value is ScalarValue { Value: string context }
+            ? context
+            : null;
 
     /// <summary>Matches Fc.Common.Logger.FcLogger.ConvertLogLevel's exact Serilog-to-Logger.Service mapping.</summary>
     public static ForecourtLogLevel ToForecourtLogLevel(LogEventLevel logLevel) => logLevel switch

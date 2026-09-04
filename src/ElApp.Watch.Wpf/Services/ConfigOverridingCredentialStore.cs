@@ -4,16 +4,13 @@ using Microsoft.Extensions.Options;
 namespace ElApp.Watch.Wpf.Services;
 
 /// <summary>
-/// TEMPORARY, testing-only decorator over the real <see cref="IForecourtCredentialStore"/>: when
-/// appsettings.json's ForecourtAuth:SeedClientId/SeedClientSecret are both set, every read returns them
-/// directly - Windows Credential Manager is not consulted at all in that case, so editing appsettings.json
-/// and relaunching always takes effect immediately with nothing else to reason about (no seed step, no
-/// "is the store empty" question). Only when both are blank does a read fall through to the real store.
-/// <see cref="Save"/> always writes through to the real store regardless, so the real
-/// provisioning/setup flow this stands in for keeps working underneath.
-/// A real forecourt device must never have its client_secret sit in a config file at all - see
-/// <see cref="WindowsCredentialManagerStore"/> - so this type should be removed, and callers should take
-/// the wrapped store directly, once a real provisioning/setup flow exists.
+/// Decorator over the real <see cref="IForecourtCredentialStore"/>: when appsettings.json's
+/// ForecourtAuth:ClientId/ClientSecret are both set, every read returns them directly - Windows
+/// Credential Manager is not consulted at all in that case, so editing appsettings.json and relaunching
+/// always takes effect immediately with nothing else to reason about. Only when both are blank does a
+/// read fall through to the real store. <see cref="Save"/> always writes through to the real store
+/// regardless, so Windows Credential Manager stays usable as a fallback for a station that hasn't been
+/// given a config-level credential.
 /// </summary>
 public sealed class ConfigOverridingCredentialStore : IForecourtCredentialStore
 {
@@ -28,9 +25,9 @@ public sealed class ConfigOverridingCredentialStore : IForecourtCredentialStore
 
     public ForecourtCredential? TryGet()
     {
-        if (!string.IsNullOrWhiteSpace(_options.SeedClientId) && !string.IsNullOrWhiteSpace(_options.SeedClientSecret))
+        if (!string.IsNullOrWhiteSpace(_options.ClientId) && !string.IsNullOrWhiteSpace(_options.ClientSecret))
         {
-            return new ForecourtCredential(_options.SeedClientId, _options.SeedClientSecret);
+            return new ForecourtCredential(_options.ClientId, _options.ClientSecret);
         }
 
         return _inner.TryGet();

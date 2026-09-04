@@ -7,7 +7,7 @@ namespace ElApp.Watch.Wpf.Tests;
 
 /// <summary>
 /// See openspec change forecourt-client-credentials-auth. Verifies appsettings.json's ForecourtAuth:
-/// SeedClientId/SeedClientSecret take over reads entirely whenever both are set - the inner (real) store
+/// ClientId/ClientSecret take over reads entirely whenever both are set - the inner (real) store
 /// is not consulted - and that reads fall through to the inner store when either is blank.
 /// </summary>
 public class ConfigOverridingCredentialStoreTests
@@ -16,7 +16,7 @@ public class ConfigOverridingCredentialStoreTests
     public void TryGet_returns_the_configured_values_directly_when_both_are_set()
     {
         var inner = new FakeInnerStore(new ForecourtCredential("el-inner", "inner-secret"));
-        var sut = CreateSut(inner, seedClientId: "el-config", seedClientSecret: "config-secret");
+        var sut = CreateSut(inner, clientId: "el-config", clientSecret: "config-secret");
 
         var result = sut.TryGet();
 
@@ -30,10 +30,10 @@ public class ConfigOverridingCredentialStoreTests
     [InlineData("el-config", null)]
     [InlineData("", "config-secret")]
     [InlineData("el-config", "")]
-    public void TryGet_falls_through_to_the_inner_store_when_either_config_value_is_blank(string? seedClientId, string? seedClientSecret)
+    public void TryGet_falls_through_to_the_inner_store_when_either_config_value_is_blank(string? clientId, string? clientSecret)
     {
         var inner = new FakeInnerStore(new ForecourtCredential("el-inner", "inner-secret"));
-        var sut = CreateSut(inner, seedClientId, seedClientSecret);
+        var sut = CreateSut(inner, clientId, clientSecret);
 
         var result = sut.TryGet();
 
@@ -45,20 +45,20 @@ public class ConfigOverridingCredentialStoreTests
     public void Save_always_writes_through_to_the_inner_store_even_when_config_values_are_set()
     {
         var inner = new FakeInnerStore(existing: null);
-        var sut = CreateSut(inner, seedClientId: "el-config", seedClientSecret: "config-secret");
+        var sut = CreateSut(inner, clientId: "el-config", clientSecret: "config-secret");
 
         sut.Save(new ForecourtCredential("el-real", "real-secret"));
 
         Assert.Equal("el-real", inner.LastSaved?.ClientId);
     }
 
-    private static ConfigOverridingCredentialStore CreateSut(IForecourtCredentialStore inner, string? seedClientId, string? seedClientSecret)
+    private static ConfigOverridingCredentialStore CreateSut(IForecourtCredentialStore inner, string? clientId, string? clientSecret)
     {
         var options = new ForecourtAuthOptions
         {
             TokenEndpoint = "https://example.test/connect/token",
-            SeedClientId = seedClientId,
-            SeedClientSecret = seedClientSecret,
+            ClientId = clientId,
+            ClientSecret = clientSecret,
         };
         return new ConfigOverridingCredentialStore(inner, Options.Create(options));
     }

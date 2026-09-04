@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using ElApp.Watch.Wpf.Services;
 using ElApp.Watch.Wpf.Services.Interface;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -154,8 +153,7 @@ public class ForecourtDiagnosticsLoggerTests
             apiClient,
             tokenClient,
             new FakeCredentialStore(credentialClientId),
-            Microsoft.Extensions.Options.Options.Create(Options),
-            NullLogger<ForecourtDiagnosticsLogger>.Instance);
+            Microsoft.Extensions.Options.Options.Create(Options));
 
     private sealed record CapturedRequest(string Uri, string? AuthHeader, string? Body);
 
