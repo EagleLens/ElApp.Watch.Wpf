@@ -1,4 +1,4 @@
-namespace ElApp.Watch.Wpf.Services;
+namespace ElApp.Watch.Forecourt;
 
 /// <summary>Bound from the "ForecourtDiagnostics" section of appsettings.json.</summary>
 public sealed class ForecourtDiagnosticsOptions

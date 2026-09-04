@@ -1,7 +1,7 @@
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
-namespace ElApp.Watch.Wpf.Services;
+namespace ElApp.Watch.Forecourt;
 
 /// <summary>
 /// This station's local IPv4 address, for the log entries' <c>Host</c> field - identifies which physical

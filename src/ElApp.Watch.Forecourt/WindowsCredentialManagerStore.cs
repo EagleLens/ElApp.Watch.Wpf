@@ -1,10 +1,9 @@
-using ElApp.Watch.Wpf.Services.Interface;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 
-namespace ElApp.Watch.Wpf.Services;
+namespace ElApp.Watch.Forecourt;
 
 /// <summary>
 /// <see cref="IForecourtCredentialStore"/> backed by the real Windows Credential Manager (not a hand-rolled

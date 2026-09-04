@@ -1,6 +1,4 @@
-using System.Net.Http;
-
-namespace ElApp.Watch.Wpf.Services.Interface;
+namespace ElApp.Watch.Forecourt;
 
 /// <summary>
 /// Authenticated HTTP client for calling EagleLens backend APIs (e.g. ElApp.MainExternal.Service) using

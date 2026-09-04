@@ -1,7 +1,6 @@
-using ElApp.Watch.Wpf.Services.Interface;
 using Microsoft.Extensions.Options;
 
-namespace ElApp.Watch.Wpf.Services;
+namespace ElApp.Watch.Forecourt;
 
 /// <summary>
 /// Decorator over the real <see cref="IForecourtCredentialStore"/>: when appsettings.json's

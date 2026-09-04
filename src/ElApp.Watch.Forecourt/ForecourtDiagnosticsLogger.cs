@@ -1,9 +1,7 @@
-using ElApp.Watch.Wpf.Services.Interface;
 using Microsoft.Extensions.Options;
-using System.Net.Http;
 using System.Net.Http.Json;
 
-namespace ElApp.Watch.Wpf.Services;
+namespace ElApp.Watch.Forecourt;
 
 /// <summary>
 /// Deliberately does not log its own delivery failures via Serilog - see the class-level remarks on

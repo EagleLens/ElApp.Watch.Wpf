@@ -1,10 +1,9 @@
 using System.Net;
 using System.Text;
-using ElApp.Watch.Wpf.Services;
-using ElApp.Watch.Wpf.Services.Interface;
+using ElApp.Watch.Forecourt;
 using Xunit;
 
-namespace ElApp.Watch.Wpf.Tests;
+namespace ElApp.Watch.Forecourt.Tests;
 
 /// <summary>
 /// See openspec change forecourt-client-credentials-auth, task 5.6. Uses a stub

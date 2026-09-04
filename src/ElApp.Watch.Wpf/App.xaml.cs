@@ -1,8 +1,8 @@
 using System.IO;
-using System.Net.Http;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
+using ElApp.Watch.Forecourt;
 using ElApp.Watch.Vision;
 using ElApp.Watch.Wpf.Services;
 using ElApp.Watch.Wpf.Services.Interface;
@@ -78,54 +78,20 @@ public partial class App : Application
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<MainWindow>();
 
-        // Forecourt auth: see openspec change forecourt-client-credentials-auth. The token/API clients
-        // talk to local dev instances behind self-signed certs, hence the cert-bypass handler below - a
-        // real deployment talks to properly-certified endpoints and must not carry this bypass.
-        builder.Services.Configure<ForecourtAuthOptions>(builder.Configuration.GetSection(ForecourtAuthOptions.SectionName));
-        // ConfigOverridingCredentialStore wraps the real Windows-Credential-Manager-backed store: while
-        // appsettings.json's ForecourtAuth:ClientId/ClientSecret are both set, every read returns them
-        // directly (Windows Credential Manager isn't consulted at all in that case) - see that type for
-        // why. Leave both blank to provision a station via Windows Credential Manager instead.
-        builder.Services.AddSingleton<IForecourtCredentialStore>(sp => new ConfigOverridingCredentialStore(
-            new WindowsCredentialManagerStore(),
-            sp.GetRequiredService<IOptions<ForecourtAuthOptions>>()));
-        builder.Services.AddHttpClient<IForecourtTokenClient, ForecourtTokenClient>()
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (_, _, _, _) => true,
-            });
-        builder.Services.AddHttpClient<IForecourtApiClient, ForecourtApiClient>()
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (_, _, _, _) => true,
-            });
-
-        // Reports this station's events to ElApp.MainExternal.Service so the platform admin finds out
-        // what's going on even though nobody is watching this unattended station locally - see
-        // IForecourtDiagnosticsLogger. Permanent, ongoing behavior (not a testing aid).
-        builder.Services.Configure<ForecourtDiagnosticsOptions>(builder.Configuration.GetSection(ForecourtDiagnosticsOptions.SectionName));
-        builder.Services.AddHttpClient<IForecourtDiagnosticsLogger, ForecourtDiagnosticsLogger>()
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (_, _, _, _) => true,
-            });
+        // Forecourt identity/auth and diagnostics/telemetry: see ElApp.Watch.Forecourt (openspec change
+        // forecourt-client-credentials-auth) - neither has any WPF dependency, so both live in their own
+        // class library with their own DI wiring; this composition root just calls it.
+        builder.Services.AddForecourtAuth(builder.Configuration);
+        builder.Services.AddForecourtDiagnostics(builder.Configuration);
 
         // Serilog, matching the platform-wide pattern used by every other El* service (see e.g.
         // ElApp.AuthService.Web's Mvc/Configurations/SerilogAndFcLogger.cs): replaces the logging
         // backend outright, so any existing or future Log.XXX(...) call anywhere in this app's own code
         // is automatically forwarded to IForecourtDiagnosticsLogger - no call site needs to know this
-        // pipeline exists. Filtered by the same "Logging:LogLevelsToPersist" appsettings key every other
-        // service uses, to avoid flooding Logger.Service with routine Debug/Information noise. Must run
-        // before Build() (Serilog convention) - the forwarding sink only resolves _host.Services lazily,
-        // once an actual log event needs forwarding, well after Build()/Start() complete.
+        // pipeline exists. Must run before Build() (Serilog convention) - the forwarding sink only
+        // resolves _host.Services lazily, once an actual log event needs forwarding, well after
+        // Build()/Start() complete.
         ForecourtSerilogLogging.Configure(builder, () => _host?.Services);
-
-        // Periodic Warning-level heartbeat (appsettings' Heartbeat:IntervalMinutes) so a station that's
-        // gone quiet - no crash, just stopped reporting - is distinguishable from one that's idle but
-        // fine. Just another Log.Warning(...) call under the hood, so it needs no wiring beyond this
-        // registration - the Serilog forwarding above already covers it.
-        builder.Services.Configure<HeartbeatOptions>(builder.Configuration.GetSection(HeartbeatOptions.SectionName));
-        builder.Services.AddHostedService<HeartbeatService>();
 
         _host = builder.Build();
         _host.Start();

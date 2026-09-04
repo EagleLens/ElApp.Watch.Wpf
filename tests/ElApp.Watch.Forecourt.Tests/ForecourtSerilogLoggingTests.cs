@@ -1,11 +1,10 @@
-using ElApp.Watch.Wpf.Services;
-using ElApp.Watch.Wpf.Services.Interface;
+using ElApp.Watch.Forecourt;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog.Events;
 using Xunit;
 
-namespace ElApp.Watch.Wpf.Tests;
+namespace ElApp.Watch.Forecourt.Tests;
 
 /// <summary>
 /// Verifies ForecourtSerilogLogging forwards every source except HttpClientFactory's own request-logging

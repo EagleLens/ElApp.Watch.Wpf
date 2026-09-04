@@ -2,10 +2,12 @@
   <Folder Name="/src/">
     <Project Path="src/ElApp.Watch.Domain/ElApp.Watch.Domain.csproj" />
     <Project Path="src/ElApp.Watch.Vision/ElApp.Watch.Vision.csproj" />
+    <Project Path="src/ElApp.Watch.Forecourt/ElApp.Watch.Forecourt.csproj" />
     <Project Path="src/ElApp.Watch.Wpf/ElApp.Watch.Wpf.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ElApp.Watch.Domain.Tests/ElApp.Watch.Domain.Tests.csproj" />
+    <Project Path="tests/ElApp.Watch.Forecourt.Tests/ElApp.Watch.Forecourt.Tests.csproj" />
     <Project Path="tests/ElApp.Watch.Wpf.Tests/ElApp.Watch.Wpf.Tests.csproj" />
   </Folder>
 </Solution>

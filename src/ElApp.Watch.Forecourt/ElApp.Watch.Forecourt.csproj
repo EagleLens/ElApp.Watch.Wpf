@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- net10.0-windows, not plain net10.0: WindowsCredentialManagerStore P/Invokes advapi32.dll
+         directly (there is no cross-platform credential store here to fall back to), and this
+         library is only ever consumed by the Windows-only ElApp.Watch.Wpf kiosk app anyway - a
+         plain net10.0 TFM would just mean sprinkling [SupportedOSPlatform("windows")] everywhere
+         a caller touches that one type, for a portability this library will never actually need. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Serilog.AspNetCore" />
+  </ItemGroup>
+
+</Project>

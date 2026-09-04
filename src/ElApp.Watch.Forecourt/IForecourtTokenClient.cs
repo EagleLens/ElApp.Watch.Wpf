@@ -1,4 +1,4 @@
-namespace ElApp.Watch.Wpf.Services.Interface;
+namespace ElApp.Watch.Forecourt;
 
 /// <summary>
 /// Obtains and caches a short-lived access token from ElApp.AuthService.Web's <c>/connect/token</c>

@@ -1,4 +1,4 @@
-namespace ElApp.Watch.Wpf.Services.Interface;
+namespace ElApp.Watch.Forecourt;
 
 /// <summary>
 /// The forecourt device's OpenIddict client_credentials (client_id/client_secret) pair, as issued by

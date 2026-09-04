@@ -1,8 +1,7 @@
-using ElApp.Watch.Wpf.Services;
-using ElApp.Watch.Wpf.Services.Interface;
+using ElApp.Watch.Forecourt;
 using Xunit;
 
-namespace ElApp.Watch.Wpf.Tests;
+namespace ElApp.Watch.Forecourt.Tests;
 
 /// <summary>
 /// Exercises the real Windows Credential Manager (no fake/mock - there is no first-party managed wrapper

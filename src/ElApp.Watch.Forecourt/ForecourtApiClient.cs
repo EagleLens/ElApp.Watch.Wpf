@@ -1,10 +1,8 @@
-using ElApp.Watch.Wpf.Services.Interface;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
-namespace ElApp.Watch.Wpf.Services;
+namespace ElApp.Watch.Forecourt;
 
 public sealed class ForecourtApiClient : IForecourtApiClient
 {

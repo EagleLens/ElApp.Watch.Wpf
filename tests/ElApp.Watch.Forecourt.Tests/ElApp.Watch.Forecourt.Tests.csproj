@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Windows-only: WindowsCredentialManagerStoreTests exercises IForecourtCredentialStore against the
+         real Windows Credential Manager (see src/ElApp.Watch.Forecourt/WindowsCredentialManagerStore.cs) -
+         not runnable on a non-Windows CI agent, consistent with ElApp.Watch.Forecourt's own net10.0-windows
+         TFM. -->
+    <ProjectReference Include="..\..\src\ElApp.Watch.Forecourt\ElApp.Watch.Forecourt.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+</Project>

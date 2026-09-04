@@ -1,4 +1,4 @@
-namespace ElApp.Watch.Wpf.Services.Interface;
+namespace ElApp.Watch.Forecourt;
 
 /// <summary>
 /// Reports this station's events (startup, errors, and anything else worth telling the platform about)

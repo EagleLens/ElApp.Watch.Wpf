@@ -1,8 +1,8 @@
-using ElApp.Watch.Wpf.Services;
+using ElApp.Watch.Forecourt;
 using Serilog.Events;
 using Xunit;
 
-namespace ElApp.Watch.Wpf.Tests;
+namespace ElApp.Watch.Forecourt.Tests;
 
 /// <summary>
 /// Verifies HeartbeatService.ResolveInterval's clamping (a misconfigured near-zero/negative

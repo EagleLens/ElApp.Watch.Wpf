@@ -98,6 +98,17 @@ public partial class PumpTileViewModel : ObservableObject
     /// <summary>The attached pump monitor for a dynamic tile, once its camera/video source starts. Null for filler tiles.</summary>
     internal PumpMonitor? Monitor { get; set; }
 
+    /// <summary>Publishes a newly-captured video frame - kept as a method (like every other tile mutation
+    /// below) so CameraSourceService doesn't need to know which raw property backs the display.</summary>
+    public void SetVideoFrame(BitmapSource frame) => VideoSource = frame;
+
+    /// <summary>Shows a just-captured snapshot overlay image.</summary>
+    public void ShowSnapshot(BitmapSource snapshot)
+    {
+        SnapshotImage = snapshot;
+        SnapshotOverlayVisible = true;
+    }
+
     /// <summary>Sets the tile's online/offline badge and status-dot color, mirroring the original SetTileStatus.</summary>
     public void SetOnlineStatus(bool online, string badgeText)
     {

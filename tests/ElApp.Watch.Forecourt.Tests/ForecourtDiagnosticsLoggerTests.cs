@@ -1,12 +1,11 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using ElApp.Watch.Wpf.Services;
-using ElApp.Watch.Wpf.Services.Interface;
+using ElApp.Watch.Forecourt;
 using Microsoft.Extensions.Options;
 using Xunit;
 
-namespace ElApp.Watch.Wpf.Tests;
+namespace ElApp.Watch.Forecourt.Tests;
 
 /// <summary>
 /// Verifies IForecourtDiagnosticsLogger's routing decision (public vs private, decided internally by

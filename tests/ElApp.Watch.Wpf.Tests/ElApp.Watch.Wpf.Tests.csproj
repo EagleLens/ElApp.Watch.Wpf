@@ -7,10 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Windows-only: exercises IForecourtCredentialStore against the real Windows Credential Manager
-         (see src/ElApp.Watch.Wpf/Services/WindowsCredentialManagerStore.cs) - not runnable on a
-         non-Windows CI agent, consistent with this app's existing WPF/DirectShow Windows-only
-         requirement (see repo README). -->
+    <!-- Currently empty: every existing test here was for the forecourt auth/diagnostics/heartbeat code,
+         which moved to ElApp.Watch.Forecourt/tests/ElApp.Watch.Forecourt.Tests (see ElApp.Watch.Wpf's own
+         Services/ folder and this project's git history for what used to live here). Kept in the solution
+         as the place for real WPF-layer tests (ViewModels, Converters, CameraSourceService) once any exist. -->
     <ProjectReference Include="..\..\src\ElApp.Watch.Wpf\ElApp.Watch.Wpf.csproj" />
   </ItemGroup>
 

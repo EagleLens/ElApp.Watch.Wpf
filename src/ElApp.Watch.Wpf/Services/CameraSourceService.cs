@@ -3,7 +3,6 @@ using ElApp.Watch.Wpf.Services.Interface;
 using ElApp.Watch.Wpf.ViewModels;
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
-using Serilog;
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Media.Imaging;
@@ -37,13 +36,6 @@ public sealed class CameraSourceService(
 
     public async Task StartLiveCameraAsync(PumpTileViewModel tile, CancellationToken token)
     {
-        Log.Verbose("Verbose:Application Starting");
-        Log.Information("Information:Application Starting");
-        Log.Debug("Debug:Application Starting");
-        Log.Warning("Warning:Application Starting");
-        Log.Error("Error:Application Starting");
-        Log.Fatal("Fatal:Application Starting");
-
         VideoCapture? capture = await Task.Run(() =>
         {
             for (int index = 0; index < 4; index++)
@@ -221,8 +213,7 @@ public sealed class CameraSourceService(
 
         dispatcher.BeginInvoke(() =>
         {
-            tile.SnapshotImage = result.Bitmap;
-            tile.SnapshotOverlayVisible = true;
+            tile.ShowSnapshot(result.Bitmap);
             tile.ShowTransientStatus(statusText, result.Saved ? AppBrushes.Online : AppBrushes.Offline, statusIcon);
         });
     }
@@ -231,7 +222,7 @@ public sealed class CameraSourceService(
     {
         BitmapSource bitmap = frame.ToBitmapSource();
         bitmap.Freeze();
-        dispatcher.BeginInvoke(() => tile.VideoSource = bitmap);
+        dispatcher.BeginInvoke(() => tile.SetVideoFrame(bitmap));
     }
 
     private void SetOnlineStatus(PumpTileViewModel tile, bool online, string badgeText)

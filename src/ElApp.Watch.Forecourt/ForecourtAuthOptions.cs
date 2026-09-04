@@ -1,6 +1,4 @@
-using ElApp.Watch.Wpf.Services.Interface;
-
-namespace ElApp.Watch.Wpf.Services;
+namespace ElApp.Watch.Forecourt;
 
 /// <summary>Bound from the "ForecourtAuth" section of appsettings.json.</summary>
 public sealed class ForecourtAuthOptions
