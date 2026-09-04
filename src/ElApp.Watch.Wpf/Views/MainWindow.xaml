@@ -120,7 +120,9 @@
         <!-- ===================== STATUS BAR ===================== -->
         <Border Grid.Row="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush1}" BorderThickness="0,1,0,0">
             <Grid Margin="16,0">
-                <TextBlock Text="Ready" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center"/>
+                <!-- Whichever pump most recently took a photo (e.g. "Pump 3 - Taking photo") - the only
+                     status this bar shows; stays until the next capture. -->
+                <TextBlock Text="{Binding SnapshotStatusText}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center"/>
                 <TextBlock Text="Recording to local storage" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right"/>
             </Grid>
         </Border>

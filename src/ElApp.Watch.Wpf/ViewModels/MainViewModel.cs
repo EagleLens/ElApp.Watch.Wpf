@@ -67,6 +67,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _showStatusLabels = true;
 
+    /// <summary>
+    /// The bottom status bar's single line: whichever pump most recently took a photo (e.g.
+    /// "Pump 3 - Taking photo") - the only status considered bar-worthy. Stays showing the last capture
+    /// until another pump takes the next one; "Ready" until the first photo of the run.
+    /// </summary>
+    [ObservableProperty]
+    private string _snapshotStatusText = "Ready";
+
     /// <summary>Kicks off pump1's live camera and pumps 2-4's sample videos. Call once after the view has attached.</summary>
     public void Start(string assetsBaseDirectory)
     {
@@ -116,6 +124,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (e.PropertyName == nameof(PumpTileViewModel.Online))
         {
             UpdateOnlineCountText();
+        }
+        else if (e.PropertyName == nameof(PumpTileViewModel.LastSnapshotStatus) &&
+            sender is PumpTileViewModel { LastSnapshotStatus: { } status })
+        {
+            SnapshotStatusText = status;
         }
     }
 

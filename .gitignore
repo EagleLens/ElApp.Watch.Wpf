@@ -28,3 +28,4 @@ Snapshots/
 # OS cruft
 Thumbs.db
 .DS_Store
+*.mp4

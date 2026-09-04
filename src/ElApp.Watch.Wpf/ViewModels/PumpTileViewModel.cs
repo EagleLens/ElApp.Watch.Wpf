@@ -95,6 +95,15 @@ public partial class PumpTileViewModel : ObservableObject
     [ObservableProperty]
     private bool _vehicleStatusTextVisible = true;
 
+    /// <summary>
+    /// This tile's status text at the moment it last took a photo (e.g. "Pump 3 - Taking photo"), for
+    /// MainViewModel's single-line status bar - the only status bar-worthy event; every other state
+    /// change is left unreported. Untouched (not cleared) between photos, so the bar keeps showing the
+    /// most recent capture until another pump takes the next one.
+    /// </summary>
+    [ObservableProperty]
+    private string? _lastSnapshotStatus;
+
     /// <summary>The attached pump monitor for a dynamic tile, once its camera/video source starts. Null for filler tiles.</summary>
     internal PumpMonitor? Monitor { get; set; }
 
@@ -126,11 +135,25 @@ public partial class PumpTileViewModel : ObservableObject
         (string text, Brush brush, string icon) = VehicleStatusDisplay[state];
         SetStatusVisual(text, brush, icon);
 
+        string? snapshotStatus = ResolveSnapshotStatus(PumpNumber, state);
+        if (snapshotStatus is not null)
+        {
+            LastSnapshotStatus = snapshotStatus;
+        }
+
         if (state == PumpState.Empty)
         {
             SnapshotOverlayVisible = false;
         }
     }
+
+    /// <summary>
+    /// The only state that's status bar-worthy: a photo just being taken. Pulled out as a pure, static,
+    /// directly-testable method - it needs no WPF resource loading, unlike constructing a full
+    /// PumpTileViewModel (which builds a real placeholder BitmapImage from a pack:// URI).
+    /// </summary>
+    public static string? ResolveSnapshotStatus(int pumpNumber, PumpState state) =>
+        state == PumpState.TakingPhoto ? $"Pump {pumpNumber} - Taking photo" : null;
 
     /// <summary>Applies the global show/hide-labels toggle to this tile, mirroring the original per-tile loop in ToggleLabelsButton_Click.</summary>
     public void SetShowStatusLabels(bool show)

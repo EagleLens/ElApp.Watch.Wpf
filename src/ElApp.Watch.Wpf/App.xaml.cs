@@ -1,7 +1,3 @@
-using System.IO;
-using System.Reflection;
-using System.Windows;
-using System.Windows.Threading;
 using ElApp.Watch.Forecourt;
 using ElApp.Watch.Vision;
 using ElApp.Watch.Wpf.Services;
@@ -12,6 +8,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using System.IO;
+using System.Reflection;
+using System.Windows;
+using System.Windows.Threading;
 
 namespace ElApp.Watch.Wpf;
 
@@ -152,11 +152,11 @@ public partial class App : Application
                     body);
             }
 
-            MessageBox.Show(
-                $"Status: {(int)response.StatusCode} {response.StatusCode}\n\n{body}",
-                "Forecourt startup test call",
-                MessageBoxButton.OK,
-                response.IsSuccessStatusCode ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            //MessageBox.Show(
+            //    $"Status: {(int)response.StatusCode} {response.StatusCode}\n\n{body}",
+            //    "Forecourt startup test call",
+            //    MessageBoxButton.OK,
+            //    response.IsSuccessStatusCode ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
         catch (Exception ex)
         {
