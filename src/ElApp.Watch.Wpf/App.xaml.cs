@@ -112,13 +112,20 @@ public partial class App : Application
 
         // Serilog, matching the platform-wide pattern used by every other El* service (see e.g.
         // ElApp.AuthService.Web's Mvc/Configurations/SerilogAndFcLogger.cs): replaces the logging
-        // backend outright, so any existing or future ILogger<T> call anywhere in this app's own code
+        // backend outright, so any existing or future Log.XXX(...) call anywhere in this app's own code
         // is automatically forwarded to IForecourtDiagnosticsLogger - no call site needs to know this
         // pipeline exists. Filtered by the same "Logging:LogLevelsToPersist" appsettings key every other
         // service uses, to avoid flooding Logger.Service with routine Debug/Information noise. Must run
         // before Build() (Serilog convention) - the forwarding sink only resolves _host.Services lazily,
         // once an actual log event needs forwarding, well after Build()/Start() complete.
         ForecourtSerilogLogging.Configure(builder, () => _host?.Services);
+
+        // Periodic Warning-level heartbeat (appsettings' Heartbeat:IntervalMinutes) so a station that's
+        // gone quiet - no crash, just stopped reporting - is distinguishable from one that's idle but
+        // fine. Just another Log.Warning(...) call under the hood, so it needs no wiring beyond this
+        // registration - the Serilog forwarding above already covers it.
+        builder.Services.Configure<HeartbeatOptions>(builder.Configuration.GetSection(HeartbeatOptions.SectionName));
+        builder.Services.AddHostedService<HeartbeatService>();
 
         _host = builder.Build();
         _host.Start();
