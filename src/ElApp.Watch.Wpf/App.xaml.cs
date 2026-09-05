@@ -44,6 +44,30 @@ public partial class App : Application
             return;
         }
 
+        // Shown for the span between process start and the main window appearing - covers the internet
+        // check below and the host/DI startup that follows it, both of which take a visible moment.
+        var splash = new SplashWindow();
+        splash.Show();
+
+        // This station is useless without connectivity to EagleLens's cloud-hosted services, so fail fast
+        // with a clear message rather than starting into a half-working state (vision models loaded,
+        // cameras opened, then every backend call failing) - see InternetConnectivityChecker.
+        splash.SetStatus("Checking internet connection...");
+        if (!await InternetConnectivityChecker.IsConnectedAsync())
+        {
+            splash.Close();
+            MessageBox.Show(
+                "ElApp.Watch.Wpf requires an active internet connection to start, and none could be " +
+                "detected on this station. Please check the network connection and restart the application.",
+                "No internet connection",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(1);
+            return;
+        }
+
+        splash.SetStatus("Starting...");
+
         HostApplicationBuilder builder = Host.CreateApplicationBuilder();
         builder.Configuration.SetBasePath(AppContext.BaseDirectory);
         builder.Configuration.AddJsonFile("appsettings.json", optional: false);
@@ -109,7 +133,13 @@ public partial class App : Application
         var viewModel = _host.Services.GetRequiredService<MainViewModel>();
         mainWindow.DataContext = viewModel;
         viewModel.Start(Path.Combine(AppContext.BaseDirectory, "Assets"));
+
+        // Showing splash first made WPF implicitly treat it as Application.MainWindow (the default for
+        // whichever window is shown first) - overriding that here is required so ShutdownMode=
+        // OnMainWindowClose triggers off the real main window, not off splash.Close() below.
+        MainWindow = mainWindow;
         mainWindow.Show();
+        splash.Close();
     }
 
     /// <summary>
