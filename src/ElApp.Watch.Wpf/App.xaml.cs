@@ -104,7 +104,6 @@ public partial class App : Application
         _host.Start();
 
         await LogApplicationStartedAsync();
-        await RunForecourtStartupTestCallIfConfiguredAsync();
 
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
         var viewModel = _host.Services.GetRequiredService<MainViewModel>();
@@ -126,51 +125,6 @@ public partial class App : Application
             ForecourtLogLevel.Info,
             "Forecourt Watch station started",
             $"ElApp.Watch.Wpf {version} started on {Environment.MachineName}.");
-    }
-
-    /// <summary>
-    /// A manual, on-demand check (see <see cref="ForecourtAuthOptions.StartupTestRequestUrl"/>): proves
-    /// the client_credentials -> bearer token -> API call path works end to end by making one
-    /// authenticated GET and showing the result. No-op (and no popup) whenever that URL is left blank -
-    /// the normal state for a station that isn't actively being verified.
-    /// </summary>
-    private async Task RunForecourtStartupTestCallIfConfiguredAsync()
-    {
-        var options = _host!.Services.GetRequiredService<IOptions<ForecourtAuthOptions>>().Value;
-        if (string.IsNullOrWhiteSpace(options.StartupTestRequestUrl))
-        {
-            return;
-        }
-
-        var diagnosticsLogger = _host.Services.GetRequiredService<IForecourtDiagnosticsLogger>();
-
-        try
-        {
-            var apiClient = _host.Services.GetRequiredService<IForecourtApiClient>();
-            using var response = await apiClient.GetAsync(options.StartupTestRequestUrl);
-            var body = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                await diagnosticsLogger.LogAsync(
-                    ForecourtLogLevel.Error,
-                    "Forecourt startup test call returned a non-success status",
-                    $"Status {(int)response.StatusCode} {response.StatusCode}",
-                    body);
-            }
-
-            //MessageBox.Show(
-            //    $"Status: {(int)response.StatusCode} {response.StatusCode}\n\n{body}",
-            //    "Forecourt startup test call",
-            //    MessageBoxButton.OK,
-            //    response.IsSuccessStatusCode ? MessageBoxImage.Information : MessageBoxImage.Warning);
-        }
-        catch (Exception ex)
-        {
-            await diagnosticsLogger.LogAsync(
-                ForecourtLogLevel.Error, "Forecourt startup test call threw", ex.Message, ex.ToString());
-            MessageBox.Show(ex.ToString(), "Forecourt startup test call failed", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
     }
 
     protected override void OnExit(ExitEventArgs e)

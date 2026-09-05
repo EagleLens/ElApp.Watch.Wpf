@@ -26,12 +26,4 @@ public sealed class ForecourtAuthOptions
 
     /// <summary>This station's forecourt client_secret, paired with <see cref="ClientId"/>.</summary>
     public string? ClientSecret { get; init; }
-
-    /// <summary>
-    /// If set, App.xaml.cs makes one authenticated GET to this URL on startup via
-    /// <see cref="IForecourtApiClient"/> and shows the result - a manual, on-demand check that the
-    /// client_credentials -> bearer token -> API call path works end to end. Leave blank to skip it (the
-    /// normal state for a station that isn't actively being verified).
-    /// </summary>
-    public string? StartupTestRequestUrl { get; init; }
 }
