@@ -27,9 +27,16 @@ public sealed class HeartbeatService : BackgroundService
     {
         using var timer = new PeriodicTimer(ResolveInterval(_options));
 
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+        try
         {
-            Log.Warning("[HeartBeat] Forecourt Watch heartbeat - {MachineName} still running.", Environment.MachineName);
+            while (await timer.WaitForNextTickAsync(stoppingToken))
+            {
+                Log.Warning("[HeartBeat] Forecourt Watch heartbeat - {MachineName} still running.", Environment.MachineName);
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Expected: the host cancels stoppingToken on shutdown, which PeriodicTimer surfaces this way.
         }
     }
 

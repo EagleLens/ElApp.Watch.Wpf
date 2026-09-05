@@ -32,6 +32,7 @@ public sealed class SnapshotService(Lazy<PlateReader> plateReader, IOptions<Snap
 
             string snapshotDir = Path.Combine(AppContext.BaseDirectory, snapshotOptions.Value.OutputFolderName);
             bool saved = false;
+            string? savedFilePath = null;
             try
             {
                 Directory.CreateDirectory(snapshotDir);
@@ -39,6 +40,7 @@ public sealed class SnapshotService(Lazy<PlateReader> plateReader, IOptions<Snap
                 string filePath = Path.Combine(snapshotDir, $"pump{pumpNumber}{plateSuffix}_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
                 Cv2.ImWrite(filePath, frame);
                 saved = true;
+                savedFilePath = filePath;
             }
             catch (IOException)
             {
@@ -47,7 +49,7 @@ public sealed class SnapshotService(Lazy<PlateReader> plateReader, IOptions<Snap
 
             BitmapSource bitmap = frame.ToBitmapSource();
             bitmap.Freeze();
-            return new SnapshotResult(bitmap, saved, plateText);
+            return new SnapshotResult(bitmap, saved, plateText, savedFilePath);
         }
     }
 }

@@ -56,11 +56,32 @@ public static class ForecourtSerilogLogging
             .WriteTo.Console(
                 outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}",
                 theme: AnsiConsoleTheme.Code)
+            // WriteTo.Console alone is invisible in practice: this is a windows-subsystem exe, so it has
+            // no console when launched normally (double-click, taskbar, Explorer) - only when started
+            // from an existing terminal. A local rolling file is what actually lets anyone (dev or
+            // on-site support) see diagnostics after the fact without needing to run under one.
+            .WriteTo.File(
+                LogFilePath,
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}",
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 14)
             .WriteTo.Sink(new ForecourtSerilogSink(logEvent => ForwardAsync(logEvent, logLevelsToPersist, serviceProvider)))
             .CreateLogger();
 
         builder.Services.AddSerilog(dispose: true);
+
+        // Guarantees the log file exists from the moment the app starts, rather than only once the
+        // first Warning+ event happens to occur (the file sink is otherwise created lazily on first
+        // write) - so its mere presence/absence is itself a reliable signal for whether a given run is
+        // actually executing this build.
+        Log.Information("ElApp.Watch.Wpf logging initialized - writing to {LogFilePath}", LogFilePath);
     }
+
+    /// <summary>%LOCALAPPDATA%\ElApp.Watch.Wpf\logs\watch-.log (rolling daily) - a per-user path that's
+    /// always writable, unlike the install directory, which a kiosk deployment may run from read-only.</summary>
+    public static readonly string LogFilePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "ElApp.Watch.Wpf", "logs", "watch-.log");
 
     /// <summary>
     /// Every event is forwarded regardless of source, matching the platform reference's own

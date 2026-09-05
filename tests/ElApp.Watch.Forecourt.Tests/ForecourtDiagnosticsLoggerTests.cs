@@ -213,6 +213,12 @@ public class ForecourtDiagnosticsLoggerTests
             WasCalled = true;
             throw new InvalidOperationException("simulated failure");
         }
+
+        public Task<HttpResponseMessage> PostFileAsync(string requestUri, byte[] fileContent, string fileName, string contentType, CancellationToken cancellationToken = default)
+        {
+            WasCalled = true;
+            throw new InvalidOperationException("should not be called");
+        }
     }
 
     private sealed class FakeCredentialStore : IForecourtCredentialStore
@@ -243,5 +249,8 @@ public class ForecourtDiagnosticsLoggerTests
             LastBody = body;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(string.Empty, Encoding.UTF8) });
         }
+
+        public Task<HttpResponseMessage> PostFileAsync(string requestUri, byte[] fileContent, string fileName, string contentType, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 }

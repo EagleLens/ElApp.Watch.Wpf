@@ -60,17 +60,27 @@ public sealed class VehicleDetector : IDisposable
     public VehicleDetection? DetectLargestVehicle(Mat frameBgr)
     {
         var tcs = new TaskCompletionSource<VehicleDetection?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _workQueue.Add(() =>
+        try
         {
-            try
+            _workQueue.Add(() =>
             {
-                tcs.SetResult(DetectOnDedicatedThread(frameBgr));
-            }
-            catch (Exception ex)
-            {
-                tcs.SetException(ex);
-            }
-        });
+                try
+                {
+                    tcs.SetResult(DetectOnDedicatedThread(frameBgr));
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                }
+            });
+        }
+        catch (InvalidOperationException)
+        {
+            // Dispose() already called CompleteAdding(): an analysis task that started just before
+            // shutdown raced past CameraSourceService's throttle check and got here anyway. Treat it
+            // exactly like "no vehicle found this frame" instead of crashing the app on close.
+            return null;
+        }
         return tcs.Task.GetAwaiter().GetResult();
     }
 

@@ -1,10 +1,15 @@
+using ElApp.Watch.Forecourt;
 using ElApp.Watch.Vision;
 using ElApp.Watch.Wpf.Services.Interface;
 using ElApp.Watch.Wpf.ViewModels;
+using Microsoft.Extensions.Options;
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
+using Serilog;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http.Json;
+using System.Text.Json;
 using System.Windows.Media.Imaging;
 
 namespace ElApp.Watch.Wpf.Services;
@@ -18,7 +23,9 @@ namespace ElApp.Watch.Wpf.Services;
 public sealed class CameraSourceService(
     Lazy<VehicleDetector> vehicleDetector,
     ISnapshotService snapshotService,
-    IUiDispatcher dispatcher) : ICameraSourceService
+    IUiDispatcher dispatcher,
+    IForecourtApiClient forecourtApiClient,
+    IOptions<ImageProcessingOptions> imageProcessingOptions) : ICameraSourceService
 {
     // Running the vehicle detector on every captured frame made the capture loop (and so
     // on-screen playback) as slow as inference itself - ~250ms/call, and shared by every
@@ -27,6 +34,8 @@ public sealed class CameraSourceService(
     // are calibrated to, since that's the actual rate presence gets re-checked at.
     private const int AnalysisIntervalMs = 1000;
     private const double AnalysisFps = 1000.0 / AnalysisIntervalMs;
+
+    private static readonly JsonSerializerOptions CaseInsensitiveJson = new() { PropertyNameCaseInsensitive = true };
 
     private sealed class AnalysisThrottle
     {
@@ -215,7 +224,81 @@ public sealed class CameraSourceService(
         {
             tile.ShowSnapshot(result.Bitmap);
             tile.ShowTransientStatus(statusText, result.Saved ? AppBrushes.Online : AppBrushes.Offline, statusIcon);
+
+            // Shows the loading state (UK-plate readout + spinner) the instant the request is about to
+            // go out, not whenever it happens to come back - see BeginResultCapture.
+            if (result.Saved && result.FilePath is not null)
+            {
+                tile.BeginResultCapture(result.PlateText);
+            }
         });
+
+        // Fire-and-forget: the capture pipeline (and the UI update above) must not wait on a network
+        // call. tile.SetSnapshotResult(...) lands whenever the response actually comes back.
+        if (result.Saved && result.FilePath is not null)
+        {
+            _ = ProcessSavedImageAsync(tile, result.FilePath, result.PlateText);
+        }
+    }
+
+    /// <summary>
+    /// Posts a just-saved snapshot to ElApp.MainExternal.Service's ProcessImage endpoint and applies its
+    /// result (Valid/Invalid/Warning) as the tile's snapshot-overlay indicator (green/red/amber).
+    /// Best-effort: any failure (auth, network, non-success status, an unparsable/empty response) is
+    /// logged via Serilog - which ForecourtSerilogLogging already forwards to Logger.Service - and
+    /// simply leaves the indicator at its neutral "pending" color rather than throwing or blocking
+    /// anything else.
+    /// </summary>
+    private async Task ProcessSavedImageAsync(PumpTileViewModel tile, string filePath, string? plateText)
+    {
+        try
+        {
+            byte[] fileContent = await File.ReadAllBytesAsync(filePath);
+            string reg = Uri.EscapeDataString(plateText ?? "unknown");
+            string requestUri = $"{imageProcessingOptions.Value.ProcessImageEndpoint}?reg={reg}";
+
+            using var response = await forecourtApiClient.PostFileAsync(requestUri, fileContent, Path.GetFileName(filePath), "image/jpeg");
+            string responseBody = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                Log.Warning("Process-image call for {PumpId} rejected by server: {StatusCode} {Body}", tile.PumpId, response.StatusCode, responseBody);
+                return;
+            }
+
+            // System.Text.Json's default JsonSerializerOptions is case-sensitive - the server's JSON
+            // keys are lowercase ("isSuccess"/"data"/"result"/...), our C# properties are PascalCase.
+            var body = JsonSerializer.Deserialize<ProcessImageResponse>(responseBody, CaseInsensitiveJson);
+
+            // A 200 with isSuccess=false (e.g. MainExternal's downstream call to Main.Service failed)
+            // still carries a "data" object - just an ApiErrorViewModel-shaped one, not a
+            // VehicleImageResultData one. Checking only "is data null" let that silently masquerade as
+            // an empty/unmapped result instead of the actual failure it is.
+            if (body is null || !body.IsSuccess)
+            {
+                Log.Warning("Process-image call for {PumpId} returned isSuccess=false: {Body}", tile.PumpId, responseBody);
+                return;
+            }
+
+            VehicleImageResultData? data = body.Data;
+            if (data is null)
+            {
+                Log.Warning("Process-image call for {PumpId} succeeded but returned no usable result: {Body}", tile.PumpId, responseBody);
+                return;
+            }
+
+            // Logged unconditionally (not just on failure) - Result silently not mapping to a known
+            // Valid/Invalid/Warning value (e.g. left at its unset default) looks identical to success
+            // from everywhere else in this method, so this is the only place that would ever surface it.
+            Log.Information(
+                "Process-image result for {PumpId}: Reg={Reg}, Result={Result}, Warnings={Warnings}, Remarks={Remarks}",
+                tile.PumpId, data.Reg, data.Result, data.Warnings, data.Remarks);
+
+            dispatcher.BeginInvoke(() => tile.SetSnapshotResult(data));
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to process the saved image for {PumpId}.", tile.PumpId);
+        }
     }
 
     private void PublishFrame(PumpTileViewModel tile, Mat frame)

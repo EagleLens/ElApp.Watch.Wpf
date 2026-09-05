@@ -21,6 +21,9 @@ public sealed class ForecourtApiClient : IForecourtApiClient
     public Task<HttpResponseMessage> PostAsJsonAsync<TBody>(string requestUri, TBody body, CancellationToken cancellationToken = default) =>
         SendWithRetryAsync(forceRefresh => CreatePostRequest(requestUri, body), cancellationToken);
 
+    public Task<HttpResponseMessage> PostFileAsync(string requestUri, byte[] fileContent, string fileName, string contentType, CancellationToken cancellationToken = default) =>
+        SendWithRetryAsync(forceRefresh => CreateFileRequest(requestUri, fileContent, fileName, contentType), cancellationToken);
+
     private async Task<HttpResponseMessage> SendWithRetryAsync(Func<bool, HttpRequestMessage> requestFactory, CancellationToken cancellationToken)
     {
         var response = await SendAsync(requestFactory, forceRefresh: false, cancellationToken);
@@ -48,4 +51,12 @@ public sealed class ForecourtApiClient : IForecourtApiClient
 
     private static HttpRequestMessage CreatePostRequest<TBody>(string requestUri, TBody body) =>
         new(HttpMethod.Post, requestUri) { Content = JsonContent.Create(body) };
+
+    private static HttpRequestMessage CreateFileRequest(string requestUri, byte[] fileContent, string fileName, string contentType)
+    {
+        var fileContentPart = new ByteArrayContent(fileContent);
+        fileContentPart.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        var content = new MultipartFormDataContent { { fileContentPart, "image", fileName } };
+        return new HttpRequestMessage(HttpMethod.Post, requestUri) { Content = content };
+    }
 }

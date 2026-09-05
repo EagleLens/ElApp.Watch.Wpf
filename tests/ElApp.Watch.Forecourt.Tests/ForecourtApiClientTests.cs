@@ -80,6 +80,30 @@ public class ForecourtApiClientTests
         Assert.Contains("\"title\":\"hello\"", handler.Requests[0].Body);
     }
 
+    [Fact]
+    public async Task PostFileAsync_attaches_the_bearer_token_and_sends_the_file_as_multipart_form_data()
+    {
+        var tokenClient = new FakeTokenClient("token-1");
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, "true");
+        var sut = new ForecourtApiClient(new HttpClient(handler), tokenClient);
+        var fileContent = "fake-image-bytes"u8.ToArray();
+
+        var response = await sut.PostFileAsync("https://example.test/process-image?reg=abc123", fileContent, "snapshot.jpg", "image/jpeg");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Post, handler.Requests[0].Method);
+        Assert.Equal("token-1", handler.Requests[0].AuthToken);
+        // The multipart body, serialized to text, carries each part's own headers inline - the field
+        // name must be "image" to match MainPrivateImageProcessingController.ProcessImage's IFormFile
+        // parameter name for ASP.NET Core's default model binding to pick it up.
+        var body = handler.Requests[0].Body!;
+        Assert.Contains("name=image", body.Replace("\"", string.Empty));
+        Assert.Contains("snapshot.jpg", body);
+        Assert.Contains("image/jpeg", body);
+        Assert.Contains("fake-image-bytes", body);
+    }
+
     private sealed class FakeTokenClient : IForecourtTokenClient
     {
         private readonly string _initialToken;

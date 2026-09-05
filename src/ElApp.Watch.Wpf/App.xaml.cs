@@ -50,6 +50,7 @@ public partial class App : Application
 
         builder.Services.Configure<VisionOptions>(builder.Configuration.GetSection(VisionOptions.SectionName));
         builder.Services.Configure<SnapshotOptions>(builder.Configuration.GetSection(SnapshotOptions.SectionName));
+        builder.Services.Configure<ImageProcessingOptions>(builder.Configuration.GetSection(ImageProcessingOptions.SectionName));
 
         // Shared across every pump, lazily built on whichever pump's background thread needs it
         // first - see CameraSourceService/VehicleDetector for why exactly one instance is required.

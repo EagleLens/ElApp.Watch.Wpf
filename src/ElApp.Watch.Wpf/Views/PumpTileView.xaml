@@ -41,9 +41,117 @@
                 <TextBlock Text="{Binding BadgeText}" Foreground="{Binding BadgeBrush}" FontSize="10" FontWeight="Bold"/>
             </Border>
 
-            <!-- Snapshot overlay (bottom-right) -->
+            <!-- Reg readout + Valid/Invalid verdict, stacked top-right below the Live/Detecting badge.
+                 The plate is styled like a UK number plate (yellow, black border/text, blue "GB" strip)
+                 and appears the instant a photo is captured and its process-image request goes out
+                 (PumpTileViewModel.BeginResultCapture), showing the local OCR's best guess plus a loading
+                 bar; once the response lands (SetSnapshotResult) it updates to the API's own reading and
+                 the verdict badge appears directly beneath it - a rounded rectangle with a small solid
+                 circular check/cross icon (drawn as a Path, not a font glyph, so it renders identically
+                 everywhere) and the actual API Remarks for Invalid. Stays up for the whole visit - only
+                 cleared when the vehicle actually leaves (ApplyVehicleStatus on PumpState.Empty). -->
+            <StackPanel VerticalAlignment="Top" HorizontalAlignment="Right" Margin="10,44,10,0"
+                        Visibility="{Binding ResultPanelVisible, Converter={StaticResource BoolToVis}}">
+                <Border Background="#FFCB05" CornerRadius="4" BorderBrush="Black" BorderThickness="1.5">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Background="#003399" CornerRadius="2.5,0,0,2.5" Padding="4,0,4,0">
+                            <TextBlock Text="GB" Foreground="White" FontSize="10" FontWeight="Bold"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="{Binding ResultRegText}" Foreground="Black" FontSize="26" FontWeight="Bold"
+                                   FontFamily="Consolas" Padding="8,2,10,2" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <ProgressBar IsIndeterminate="True" Height="4" Margin="0,6,0,0"
+                             Visibility="{Binding ResultLoading, Converter={StaticResource BoolToVis}}"/>
+
+                <!-- Valid: calm, no animation - the expected/good outcome doesn't need urgency. -->
+                <Border Margin="0,6,0,0" CornerRadius="8" Padding="10,7,14,7"
+                        Background="#CC0A2E14" BorderBrush="{Binding ResultIconBrush}" BorderThickness="1.5"
+                        Visibility="{Binding ResultSideVisible, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="22" Height="22" CornerRadius="11" Background="{Binding ResultIconBrush}" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <Path Stroke="White" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                  Data="M6 12 L10 16 L18 7" Width="13" Height="13" Stretch="Uniform"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="VALID" Foreground="White" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Invalid: same rectangular treatment as Valid, plus a glow and a brief pulse - a
+                     fraud/fake-plate signal that still needs to read as urgent. Shows the API's actual
+                     Remarks (e.g. a registry make mismatch), not a generic label. -->
+                <Border Margin="0,6,0,0" CornerRadius="8" Padding="10,7,14,7"
+                        Background="#CC2E0A0A" BorderBrush="{Binding ResultIconBrush}" BorderThickness="1.5"
+                        Visibility="{Binding ResultInvalidVisible, Converter={StaticResource BoolToVis}}"
+                        RenderTransformOrigin="0.5,0.5">
+                    <Border.RenderTransform>
+                        <ScaleTransform/>
+                    </Border.RenderTransform>
+                    <Border.Effect>
+                        <DropShadowEffect Color="#FF3B30" BlurRadius="16" ShadowDepth="0" Opacity="0.7"/>
+                    </Border.Effect>
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ResultInvalidVisible}" Value="True">
+                                    <DataTrigger.EnterActions>
+                                        <BeginStoryboard Name="InvalidPulseStoryboard">
+                                            <Storyboard RepeatBehavior="3x">
+                                                <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleX)"
+                                                                 From="1" To="1.06" Duration="0:0:0.3" AutoReverse="True"/>
+                                                <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                 From="1" To="1.06" Duration="0:0:0.3" AutoReverse="True"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </DataTrigger.EnterActions>
+                                    <DataTrigger.ExitActions>
+                                        <StopStoryboard BeginStoryboardName="InvalidPulseStoryboard"/>
+                                    </DataTrigger.ExitActions>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="22" Height="22" CornerRadius="11" Background="{Binding ResultIconBrush}" VerticalAlignment="Center" Margin="0,0,8,0">
+                                <Path Stroke="White" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeLineJoin="Round"
+                                      Data="M6 6 L18 18 M18 6 L6 18" Width="13" Height="13" Stretch="Uniform"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="INVALID" Foreground="White" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding ResultRemarksText}" Foreground="#FFD0D0" FontSize="13" FontWeight="Medium"
+                                   TextWrapping="Wrap" TextAlignment="Left" MaxWidth="190" Margin="0,6,0,0"
+                                   Visibility="{Binding ResultRemarksVisible, Converter={StaticResource BoolToVis}}"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Warning: center of the tile - an uncertain read is worth a fuller, more deliberate look
+                 than a corner badge, without the urgency of the Invalid pulse. -->
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                    MaxWidth="220" Background="#D9000000" Opacity="0.92" CornerRadius="14" Padding="24,16,24,16"
+                    BorderBrush="{Binding ResultIconBrush}" BorderThickness="2"
+                    Visibility="{Binding ResultWarningVisible, Converter={StaticResource BoolToVis}}">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="{Binding ResultIcon}" Foreground="{Binding ResultIconBrush}"
+                               FontSize="64" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding ResultStatusLabel}" Foreground="{Binding ResultIconBrush}"
+                               FontSize="17" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0"
+                               Visibility="{Binding ResultStatusLabelVisible, Converter={StaticResource BoolToVis}}"/>
+                    <TextBlock Text="{Binding ResultRemarksText}" Foreground="White" FontSize="14" FontWeight="Medium"
+                               TextWrapping="Wrap" TextAlignment="Center" LineHeight="18" Margin="0,6,0,0"
+                               Visibility="{Binding ResultRemarksVisible, Converter={StaticResource BoolToVis}}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Snapshot overlay (bottom-right) - border color reports the process-image API's result:
+                 neutral while pending, green for true, red for false. -->
             <Border Width="104" Height="78" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="10"
-                    CornerRadius="6" BorderBrush="{StaticResource AccentBrush}" BorderThickness="2"
+                    CornerRadius="6" BorderBrush="{Binding SnapshotResultBrush}" BorderThickness="2"
                     Background="Black" ClipToBounds="True"
                     Visibility="{Binding SnapshotOverlayVisible, Converter={StaticResource BoolToVis}}">
                 <Grid>
