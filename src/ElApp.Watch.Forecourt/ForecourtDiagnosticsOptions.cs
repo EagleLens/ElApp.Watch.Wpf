@@ -12,14 +12,18 @@ public sealed class ForecourtDiagnosticsOptions
     /// <summary>
     /// ElApp.MainExternal.Service's public (AllowAnonymous) log-message endpoint - used when the app
     /// cannot authenticate at all, so the server still finds out something is wrong even without a
-    /// bearer token. See LoggerPublicLoggerController.
+    /// bearer token. See LoggerPublicLoggerController. Not bound from config directly - computed from
+    /// <see cref="MainExternalApiOptions.BaseUrl"/> via <see cref="MainExternalApiEndpoints"/>, see
+    /// ServiceCollectionExtensions.AddForecourtDiagnostics.
     /// </summary>
-    public required string PublicLogEndpoint { get; init; }
+    public required string PublicLogEndpoint { get; set; }
 
     /// <summary>
     /// ElApp.MainExternal.Service's private (bearer-token-secured) log-message endpoint - used for
     /// problems that occur after the app has already authenticated successfully. See
-    /// LoggerPrivateLoggerController.
+    /// LoggerPrivateLoggerController. Not bound from config directly - computed from
+    /// <see cref="MainExternalApiOptions.BaseUrl"/> via <see cref="MainExternalApiEndpoints"/>, see
+    /// ServiceCollectionExtensions.AddForecourtDiagnostics.
     /// </summary>
-    public required string PrivateLogEndpoint { get; init; }
+    public required string PrivateLogEndpoint { get; set; }
 }

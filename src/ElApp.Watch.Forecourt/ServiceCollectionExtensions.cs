@@ -21,6 +21,10 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddForecourtAuth(this IServiceCollection services, IConfiguration configuration)
     {
+        // Registered here (rather than only inside AddForecourtDiagnostics) so it's available regardless
+        // of which of this class's two methods a caller uses - see MainExternalApiOptions/
+        // MainExternalApiEndpoints, which every ElApp.MainExternal.Service endpoint is resolved from.
+        services.Configure<MainExternalApiOptions>(configuration.GetSection(MainExternalApiOptions.SectionName));
         services.Configure<ForecourtAuthOptions>(configuration.GetSection(ForecourtAuthOptions.SectionName));
         services.AddSingleton<IForecourtCredentialStore>(sp => new ConfigOverridingCredentialStore(
             new WindowsCredentialManagerStore(),
@@ -42,7 +46,13 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddForecourtDiagnostics(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<ForecourtDiagnosticsOptions>(configuration.GetSection(ForecourtDiagnosticsOptions.SectionName));
+        services.AddOptions<ForecourtDiagnosticsOptions>()
+            .Bind(configuration.GetSection(ForecourtDiagnosticsOptions.SectionName))
+            .PostConfigure<IOptions<MainExternalApiOptions>>((options, mainExternalApi) =>
+            {
+                options.PublicLogEndpoint = MainExternalApiEndpoints.PublicLog(mainExternalApi.Value.BaseUrl);
+                options.PrivateLogEndpoint = MainExternalApiEndpoints.PrivateLog(mainExternalApi.Value.BaseUrl);
+            });
         services.AddHttpClient<IForecourtDiagnosticsLogger, ForecourtDiagnosticsLogger>()
             .ConfigurePrimaryHttpMessageHandler(CreateCertBypassHandler);
 

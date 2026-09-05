@@ -50,7 +50,13 @@ public partial class App : Application
 
         builder.Services.Configure<VisionOptions>(builder.Configuration.GetSection(VisionOptions.SectionName));
         builder.Services.Configure<SnapshotOptions>(builder.Configuration.GetSection(SnapshotOptions.SectionName));
-        builder.Services.Configure<ImageProcessingOptions>(builder.Configuration.GetSection(ImageProcessingOptions.SectionName));
+
+        // ProcessImageEndpoint isn't bound from appsettings.json - it's resolved from MainExternalApi:
+        // BaseUrl (registered by AddForecourtAuth below) via MainExternalApiEndpoints, same as
+        // ForecourtDiagnosticsOptions's own endpoints - see ServiceCollectionExtensions.
+        builder.Services.AddOptions<ImageProcessingOptions>()
+            .PostConfigure<IOptions<MainExternalApiOptions>>((options, mainExternalApi) =>
+                options.ProcessImageEndpoint = MainExternalApiEndpoints.ProcessImage(mainExternalApi.Value.BaseUrl));
 
         // Shared across every pump, lazily built on whichever pump's background thread needs it
         // first - see CameraSourceService/VehicleDetector for why exactly one instance is required.
